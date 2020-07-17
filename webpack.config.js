@@ -67,6 +67,7 @@ const config = {
   plugins: [
     new HtmlWebpackPlugin({
       template: "./web/index.html",
+      inject: false
     }),
     new FaviconsWebpackPlugin('./web/logo.png'),
     new MiniCssExtractPlugin(),
