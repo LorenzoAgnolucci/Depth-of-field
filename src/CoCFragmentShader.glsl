@@ -6,9 +6,9 @@ uniform sampler2D tDepth;
 uniform float cameraNear;
 uniform float cameraFar;
 
-uniform float focalDepth;  //focal distance value in meters
-uniform float focalLength; //focal length in mm
-uniform float fstop; //f-stop value
+uniform float focalDepth;       // Focal distance value in meters
+uniform float focalLength;      // Focal length in mm
+uniform float fstop;        // F-stop value
 
 
 float readDepth( sampler2D depthSampler, vec2 coord ) {
@@ -21,20 +21,19 @@ float readDepth( sampler2D depthSampler, vec2 coord ) {
 
 void main() {
     float depth = readDepth( tDepth, vUv );
-    float aperture = focalLength / fstop;
-    // float objectDistance = - cameraFar * cameraNear / (depth * (cameraFar - cameraNear) - cameraFar);
-    float objectDistance = depth;
+    float focalDepthMM = focalDepth * 1000.0;       // Focal depth in millimeters
+    float objectDistance = - cameraFar * cameraNear / (depth * (cameraFar - cameraNear) - cameraFar);
+    objectDistance = objectDistance * 1000.0;       // Object distance in millimeters
 
-    float CoC = abs(aperture * (focalLength * (objectDistance - focalDepth)) / (objectDistance * (focalDepth - focalLength)));
-    CoC = clamp(CoC, 0.0, 1.0);
+    float CoC = (focalLength / fstop) * (focalLength * (objectDistance - focalDepthMM)) / (objectDistance * (focalDepthMM - focalLength));      // From NVIDIA Chapter 23 (or Wikipedia Circle of Confusion)
+    CoC = clamp(CoC, -1.0, 1.0);
 
-    float signedDistance = depth - focalDepth;
-    float magnitude = smoothstep(0.0, focalLength, abs(signedDistance));
+    if(CoC >= 0.0){
+        gl_FragColor.b = CoC;
+    }
+    else{
+        gl_FragColor.g = abs(CoC);
+    }
 
-    gl_FragColor.rg = vec2(
-        step(signedDistance, 0.0) * magnitude,
-        step(0.0, signedDistance) * magnitude
-    );
-    // gl.FragColor.rgb = vec3(CoC);
     gl_FragColor.a = 1.0;
 }
