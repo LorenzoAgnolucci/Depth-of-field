@@ -20,6 +20,7 @@ import Stats from "three/examples/jsm/libs/stats.module"
 import depthVertexShader from "./DepthVertexShader.glsl"
 import depthFragmentShader from "./DepthFragmentShader.glsl"
 import cocFragmentShader from "./CoCFragmentShader.glsl"
+import DoFFragmentShader from "./DoFFragmentShader.glsl"
 import {Scene} from "three";
 
 
@@ -36,15 +37,16 @@ function main(){
 		75,                                   // Field of view
 		window.innerWidth / window.innerHeight, // Aspect ratio
 		0.1,                                  // Near clipping pane
-		50                                  // Far clipping pane
+		100                                  // Far clipping pane
 	);
 
-	camera.position.set(5, 1, 0);
+	camera.position.set(3, 1, 0);
 	// camera.lookAt(new THREE.Vector3(-5, 0, -10));
 
 	var renderer = new THREE.WebGLRenderer({antialias: true});
 	renderer.setSize(window.innerWidth, window.innerHeight);
 	renderer.setClearColor(0xeeeeee);
+	renderer.setPixelRatio( window.devicePixelRatio);
 	document.body.appendChild(renderer.domElement);
 
 	var geometry = new THREE.BoxGeometry();
@@ -122,8 +124,8 @@ function main(){
 			cameraFar: { value: camera.far },
 			tDiffuse: { value: null },
 			tDepth: { value: null },
-			focalDepth: {value: 0.4},
-			focalLength: {value: 0.1},
+			focalDepth: {value: 0.12}, //0.4
+			focalLength: {value: 35}, //0.1
 			fstop: {value: 2.2}
 		}
 	})
@@ -132,21 +134,89 @@ function main(){
 	var cocQuad = new THREE.Mesh(cocPlane, cocShaderMaterial);
 	cocScene = new Scene();
 	cocScene.add(cocQuad);
+	
+	var DoFScene;
+	var DoFShaderMaterial = new THREE.ShaderMaterial({
+		vertexShader: depthVertexShader,
+		fragmentShader: DoFFragmentShader,
+		uniforms: {
+			cameraNear: {value: camera.near},
+			cameraFar: {value: camera.far},
+			tDiffuse: {value: null},
+			tDepth: {value: null},
+			focalDepth: {value: 0.2}, //0.4
+			focalLength: {value: 35}, //0.1
+			fstop: {value: 2.2},
+			widthTexel: {value: 1.0 / window.innerHeight.toFixed(1)},
+			heightTexel: {value: 1.0 / window.innerWidth.toFixed(1)},
+			horizontalBlur: {value: false}
+		}
+	});
+	var DoFPlane = new THREE.PlaneBufferGeometry(2, 2);
+	var DoFQuad = new THREE.Mesh(DoFPlane, DoFShaderMaterial);
+	DoFScene = new Scene();
+	DoFScene.add(DoFQuad);
 
-	var target = new THREE.WebGLRenderTarget( window.innerWidth, window.innerHeight );
-	target.texture.format = THREE.RGBFormat;
-	target.texture.minFilter = THREE.NearestFilter;
-	target.texture.magFilter = THREE.NearestFilter;
-	target.texture.generateMipmaps = false;
-	target.stencilBuffer = false;
-	target.depthBuffer = true;
-	target.depthTexture = new THREE.DepthTexture();
-	target.depthTexture.format = THREE.DepthFormat;
-	target.depthTexture.type = THREE.UnsignedIntType;
+	var blurScene;
+	var blurShaderMaterial = new THREE.ShaderMaterial({
+		vertexShader: depthVertexShader,
+		fragmentShader: DoFFragmentShader,
+		uniforms: {
+			cameraNear: {value: camera.near},
+			cameraFar: {value: camera.far},
+			tDiffuse: {value: null},
+			tDepth: {value: null},
+			focalDepth: {value: 0.2}, //0.4
+			focalLength: {value: 35}, //0.1
+			fstop: {value: 2.2},
+			widthTexel: {value: 1.0 / window.innerHeight.toFixed(1)},
+			heightTexel: {value: 1.0 / window.innerWidth.toFixed(1)},
+			horizontalBlur: {value: true}
+		}
+	});
+	var blurPlane = new THREE.PlaneBufferGeometry(2, 2);
+	var blurQuad = new THREE.Mesh(blurPlane, blurShaderMaterial);
+	blurScene = new Scene();
+	blurScene.add(blurQuad);
+
+	var basicTarget = new THREE.WebGLRenderTarget( window.innerWidth, window.innerHeight );
+	basicTarget.texture.format = THREE.RGBFormat;
+	basicTarget.texture.minFilter = THREE.NearestFilter;
+	basicTarget.texture.magFilter = THREE.NearestFilter;
+	basicTarget.texture.generateMipmaps = false;
+	basicTarget.stencilBuffer = false;
+	basicTarget.depthBuffer = true;
+	basicTarget.depthTexture = new THREE.DepthTexture();
+	basicTarget.depthTexture.format = THREE.DepthFormat;
+	basicTarget.depthTexture.type = THREE.UnsignedIntType;
+
+	var cocTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
+	// cocTarget.setSize(innerWidth / 2, innerHeight / 2);     // Lower resolution for blur
+	cocTarget.texture.format = THREE.RGBFormat;
+	cocTarget.texture.minFilter = THREE.NearestFilter;
+	cocTarget.texture.magFilter = THREE.NearestFilter;
+	cocTarget.texture.generateMipmaps = false;
+	cocTarget.stencilBuffer = false;
+	cocTarget.depthBuffer = true;
+	cocTarget.depthTexture = new THREE.DepthTexture();
+	cocTarget.depthTexture.format = THREE.DepthFormat;
+	cocTarget.depthTexture.type = THREE.UnsignedIntType;
+
+	var blurTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
+	blurTarget.setSize(innerWidth, innerHeight);     // Lower resolution for blur
+	blurTarget.texture.format = THREE.RGBFormat;
+	blurTarget.texture.minFilter = THREE.NearestFilter;
+	blurTarget.texture.magFilter = THREE.NearestFilter;
+	blurTarget.texture.generateMipmaps = false;
+	blurTarget.stencilBuffer = false;
+	blurTarget.depthBuffer = true;
+	blurTarget.depthTexture = new THREE.DepthTexture();
+	blurTarget.depthTexture.format = THREE.DepthFormat;
+	blurTarget.depthTexture.type = THREE.UnsignedIntType;
 
 	// Effect Composer
 /*
-	var renderComposer = new EffectComposer(renderer, target);
+	var renderComposer = new EffectComposer(renderer, basicTarget);
 	var renderPass = new RenderPass(scene, camera);
 	renderComposer.addPass(renderPass);
 
@@ -164,8 +234,8 @@ function main(){
 		}
 	}
 	var depthPass = new ShaderPass(depthShaderMaterial);
-	depthPass.uniforms.tDepth.value = target.depthTexture;
-	depthPass.uniforms.tDiffuse.value = target.texture;
+	depthPass.uniforms.tDepth.value = basicTarget.depthTexture;
+	depthPass.uniforms.tDiffuse.value = basicTarget.texture;
 	depthComposer.addPass(depthPass);
 	var copyPass = new ShaderPass(CopyShader);
 	copyPass.renderToScreen = true;
@@ -175,11 +245,11 @@ function main(){
 	var gui = new GUI();
 
 	var guiControls = new function(){
-		this.boolRenderDepth = true;
+		this.whichScene = "DoF";
 	}
 	{
-		const folder = gui.addFolder("Choose scene");
-		folder.add(guiControls, 'boolRenderDepth').name("render depth")
+		const folder = gui.addFolder("Rendered scene");
+		folder.add(guiControls, "whichScene", ["Basic", "CoC", "Depth", "DoF"]).name("Scene")
 		folder.open();
 	}
 
@@ -189,11 +259,19 @@ function main(){
 	animate();
 
 	function animate(){
-		if(guiControls.boolRenderDepth){
-			renderDepth();
-		}
-		else{
-			render();
+		switch(guiControls.whichScene){
+			case "Basic":
+				render();
+				break;
+			case "CoC":
+				renderScene(cocScene);
+				break;
+			case "Depth":
+				renderScene(depthScene);
+				break;
+			case "DoF":
+				renderDoF();
+				break;
 		}
 		stats.update();
 		requestAnimationFrame(animate);
@@ -203,31 +281,64 @@ function main(){
 		renderer.render(scene, camera);
 	}
 
-	function renderDepth(){
+	function renderScene(sceneToRender){
 
-		renderer.setRenderTarget(target);
+		renderer.setRenderTarget(basicTarget);
 		renderer.render(scene, camera);
 
-		depthShaderMaterial.uniforms.tDiffuse.value = target.texture;
-		depthShaderMaterial.uniforms.tDepth.value = target.depthTexture;
+		depthShaderMaterial.uniforms.tDiffuse.value = basicTarget.texture;
+		depthShaderMaterial.uniforms.tDepth.value = basicTarget.depthTexture;
 
-		cocShaderMaterial.uniforms.tDiffuse.value = target.texture;
-		cocShaderMaterial.uniforms.tDepth.value = target.depthTexture;
+		cocShaderMaterial.uniforms.tDiffuse.value = basicTarget.texture;
+		cocShaderMaterial.uniforms.tDepth.value = basicTarget.depthTexture;
 
 		renderer.setRenderTarget(null);
+		renderer.render(sceneToRender, depthCamera);
+	}
+	
+	function renderDoF(){
+		renderer.setRenderTarget(basicTarget);
+		renderer.render(scene, camera);
+
+		depthShaderMaterial.uniforms.tDiffuse.value = basicTarget.texture;
+		depthShaderMaterial.uniforms.tDepth.value = basicTarget.depthTexture;
+
+		cocShaderMaterial.uniforms.tDiffuse.value = basicTarget.texture;
+		cocShaderMaterial.uniforms.tDepth.value = basicTarget.depthTexture;
+
+		renderer.setRenderTarget(cocTarget);
 		renderer.render(cocScene, depthCamera);
-		// renderer.render(depthScene, depthCamera);
+
+		DoFShaderMaterial.uniforms.tDiffuse.value = cocTarget.texture;
+		DoFShaderMaterial.uniforms.tDepth.value = cocTarget.depthTexture;
+
+		renderer.setRenderTarget(blurTarget);
+		renderer.render(DoFScene, depthCamera);
+
+		blurShaderMaterial.uniforms.tDiffuse.value = blurTarget.texture;
+		blurShaderMaterial.uniforms.tDepth.value = blurTarget.depthTexture;
+
+		renderer.setRenderTarget(null);
+		renderer.render(blurScene, depthCamera);
 	}
 
 
 	var controls = new OrbitControls(camera, renderer.domElement);
 	controls.target = new THREE.Vector3(-3, 1, 0);
 	controls.addEventListener('change', function(){
-		if(guiControls.boolRenderDepth){
-			renderDepth();
-		}
-		else{
-			render();
+		switch(guiControls.whichScene){
+			case "Basic":
+				render();
+				break;
+			case "CoC":
+				renderScene(cocScene);
+				break;
+			case "Depth":
+				renderScene(depthScene);
+				break;
+			case "DoF":
+				renderDoF();
+				break;
 		}
 	});
 	controls.update();      //required if dampling is enabled
