@@ -5,7 +5,8 @@ import { BokehPass } from "three/examples/jsm/postprocessing/BokehPass";
 // import { BokehShader } from "three/examples/jsm/shaders/BokehShader";
 import { BokehShader } from "three/examples/jsm/shaders/BokehShader2"
 import {EffectComposer} from "three/examples/jsm/postprocessing/EffectComposer";
-// import tesla from "../models/tesla_model_s/scene.gltf"
+import tesla from "../models/tesla_model_s/scene.gltf"
+import london_hall from "../models/hintze_hall_nhm_london_surface_model/scene.gltf"
 import {RenderPass} from "three/examples/jsm/postprocessing/RenderPass";
 import {GUI} from "three/examples/jsm/libs/dat.gui.module.js";
 import px from "../models/background/cube/px.png"
@@ -20,6 +21,7 @@ import Stats from "three/examples/jsm/libs/stats.module"
 import depthVertexShader from "./DepthVertexShader.glsl"
 import depthFragmentShader from "./DepthFragmentShader.glsl"
 import cocFragmentShader from "./CoCFragmentShader.glsl"
+import blurFragmentShader from "./BlurFragmentShader.glsl"
 import DoFFragmentShader from "./DoFFragmentShader.glsl"
 import {Scene} from "three";
 
@@ -37,7 +39,7 @@ function main(){
 		75,                                   // Field of view
 		window.innerWidth / window.innerHeight, // Aspect ratio
 		0.1,                                  // Near clipping pane
-		100                                  // Far clipping pane
+		200                                  // Far clipping pane
 	);
 
 	camera.position.set(3, 1, 0);
@@ -72,13 +74,18 @@ function main(){
 	plane.rotateX(4.71);
 	scene.add(plane);
 
-	/*
+
 	var loader = new GLTFLoader();
 
-	loader.load( tesla, function ( gltf ) {
+	loader.load(london_hall, function ( gltf ) {
 
-		gltf.scene.position.z = -30
-		gltf.scene.scale.set(0.5, 0.5, 0.5)
+		gltf.scene.position.set(-5, 20, -27);
+		gltf.scene.scale.set(5, 5, 5)
+		gltf.scene.traverse( child => {
+			if ( child.material ) child.material.metalness = 0.0;
+
+		} );
+
 		scene.add( gltf.scene );
 
 	}, undefined, function ( error ) {
@@ -87,14 +94,25 @@ function main(){
 
 	} );
 
-	 */
 
-	var light = new THREE.AmbientLight(0x404040, 1); // soft white light
+
+	var light = new THREE.AmbientLight("#c9c7c7", 1); // soft white light
 	scene.add(light);
 
-	var directionalLight = new THREE.DirectionalLight(0xffffff, 2);
+	var directionalLight = new THREE.DirectionalLight("#c9c7c7", 2);
 	directionalLight.target = sphere;
 	scene.add(directionalLight);
+
+	var teslaLight = new THREE.DirectionalLight("#c9c7c7", 50);
+	teslaLight.position.set(-10, 20, 10);
+	scene.add(teslaLight);
+
+
+	var cameraParameters = {
+		focalDepth : 0.11,
+		focalLength : 35,
+		fstop: 2.2
+	}
 
 	var depthScene;
 	var depthCamera = new THREE.OrthographicCamera( - 1, 1, 1, - 1, 0, 1 );
@@ -124,9 +142,9 @@ function main(){
 			cameraFar: { value: camera.far },
 			tDiffuse: { value: null },
 			tDepth: { value: null },
-			focalDepth: {value: 0.12}, //0.4
-			focalLength: {value: 35}, //0.1
-			fstop: {value: 2.2}
+			focalDepth: {value: cameraParameters.focalDepth}, //0.4
+			focalLength: {value: cameraParameters.focalLength}, //0.1
+			fstop: {value: cameraParameters.fstop}
 		}
 	})
 
@@ -135,49 +153,67 @@ function main(){
 	cocScene = new Scene();
 	cocScene.add(cocQuad);
 	
-	var DoFScene;
-	var DoFShaderMaterial = new THREE.ShaderMaterial({
+	var verticalBlurScene;
+	var verticalBlurShaderMaterial = new THREE.ShaderMaterial({
 		vertexShader: depthVertexShader,
-		fragmentShader: DoFFragmentShader,
+		fragmentShader: blurFragmentShader,
 		uniforms: {
 			cameraNear: {value: camera.near},
 			cameraFar: {value: camera.far},
 			tDiffuse: {value: null},
 			tDepth: {value: null},
-			focalDepth: {value: 0.2}, //0.4
-			focalLength: {value: 35}, //0.1
-			fstop: {value: 2.2},
+			focalDepth: {value: cameraParameters.focalDepth}, //0.4
+			focalLength: {value: cameraParameters.focalLength}, //0.1
+			fstop: {value: cameraParameters.fstop},
 			widthTexel: {value: 1.0 / window.innerHeight.toFixed(1)},
 			heightTexel: {value: 1.0 / window.innerWidth.toFixed(1)},
 			horizontalBlur: {value: false}
+		}
+	});
+	var verticalBlurPlane = new THREE.PlaneBufferGeometry(2, 2);
+	var verticalBlurQuad = new THREE.Mesh(verticalBlurPlane, verticalBlurShaderMaterial);
+	verticalBlurScene = new Scene();
+	verticalBlurScene.add(verticalBlurQuad);
+
+	var horizontalBlurScene;
+	var horizontalBlurShaderMaterial = new THREE.ShaderMaterial({
+		vertexShader: depthVertexShader,
+		fragmentShader: blurFragmentShader,
+		uniforms: {
+			cameraNear: {value: camera.near},
+			cameraFar: {value: camera.far},
+			tDiffuse: {value: null},
+			tDepth: {value: null},
+			focalDepth: {value: cameraParameters.focalDepth}, //0.4
+			focalLength: {value: cameraParameters.focalLength}, //0.1
+			fstop: {value: cameraParameters.fstop},
+			widthTexel: {value: 1.0 / window.innerHeight.toFixed(1)},
+			heightTexel: {value: 1.0 / window.innerWidth.toFixed(1)},
+			horizontalBlur: {value: true}
+		}
+	});
+	var horizontalBlurPlane = new THREE.PlaneBufferGeometry(2, 2);
+	var horizontalBlurQuad = new THREE.Mesh(horizontalBlurPlane, horizontalBlurShaderMaterial);
+	horizontalBlurScene = new Scene();
+	horizontalBlurScene.add(horizontalBlurQuad);
+
+	var DoFScene;
+	var DoFShaderMaterial = new THREE.ShaderMaterial({
+		vertexShader: depthVertexShader,
+		fragmentShader: DoFFragmentShader,
+		uniforms: {
+			tDiffuse: {value: null},
+			tDepth: {value: null},
+			tOriginal: {value: null},
+			texelHeight: {value: 1.0 / window.innerHeight.toFixed(1)},
+			texelWidth: {value: 1.0 / window.innerWidth.toFixed(1)},
+			bokehBlurSize: {value: 4.0}
 		}
 	});
 	var DoFPlane = new THREE.PlaneBufferGeometry(2, 2);
 	var DoFQuad = new THREE.Mesh(DoFPlane, DoFShaderMaterial);
 	DoFScene = new Scene();
 	DoFScene.add(DoFQuad);
-
-	var blurScene;
-	var blurShaderMaterial = new THREE.ShaderMaterial({
-		vertexShader: depthVertexShader,
-		fragmentShader: DoFFragmentShader,
-		uniforms: {
-			cameraNear: {value: camera.near},
-			cameraFar: {value: camera.far},
-			tDiffuse: {value: null},
-			tDepth: {value: null},
-			focalDepth: {value: 0.2}, //0.4
-			focalLength: {value: 35}, //0.1
-			fstop: {value: 2.2},
-			widthTexel: {value: 1.0 / window.innerHeight.toFixed(1)},
-			heightTexel: {value: 1.0 / window.innerWidth.toFixed(1)},
-			horizontalBlur: {value: true}
-		}
-	});
-	var blurPlane = new THREE.PlaneBufferGeometry(2, 2);
-	var blurQuad = new THREE.Mesh(blurPlane, blurShaderMaterial);
-	blurScene = new Scene();
-	blurScene.add(blurQuad);
 
 	var basicTarget = new THREE.WebGLRenderTarget( window.innerWidth, window.innerHeight );
 	basicTarget.texture.format = THREE.RGBFormat;
@@ -213,6 +249,18 @@ function main(){
 	blurTarget.depthTexture = new THREE.DepthTexture();
 	blurTarget.depthTexture.format = THREE.DepthFormat;
 	blurTarget.depthTexture.type = THREE.UnsignedIntType;
+
+	var DoFTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
+	DoFTarget.setSize(innerWidth, innerHeight);     // Lower resolution for DoF
+	DoFTarget.texture.format = THREE.RGBFormat;
+	DoFTarget.texture.minFilter = THREE.NearestFilter;
+	DoFTarget.texture.magFilter = THREE.NearestFilter;
+	DoFTarget.texture.generateMipmaps = false;
+	DoFTarget.stencilBuffer = false;
+	DoFTarget.depthBuffer = true;
+	DoFTarget.depthTexture = new THREE.DepthTexture();
+	DoFTarget.depthTexture.format = THREE.DepthFormat;
+	DoFTarget.depthTexture.type = THREE.UnsignedIntType;
 
 	// Effect Composer
 /*
@@ -250,6 +298,11 @@ function main(){
 	{
 		const folder = gui.addFolder("Rendered scene");
 		folder.add(guiControls, "whichScene", ["Basic", "CoC", "Depth", "DoF"]).name("Scene")
+		folder.open();
+	}
+	{
+		const folder = gui.addFolder("Camera parameters");
+		folder.add(cameraParameters, "focalDepth", 0.0, 1.0).name("Focal depth").step(0.01);
 		folder.open();
 	}
 
@@ -309,21 +362,29 @@ function main(){
 		renderer.setRenderTarget(cocTarget);
 		renderer.render(cocScene, depthCamera);
 
-		DoFShaderMaterial.uniforms.tDiffuse.value = cocTarget.texture;
-		DoFShaderMaterial.uniforms.tDepth.value = cocTarget.depthTexture;
+		verticalBlurShaderMaterial.uniforms.tDiffuse.value = cocTarget.texture;
+		verticalBlurShaderMaterial.uniforms.tDepth.value = cocTarget.depthTexture;
 
 		renderer.setRenderTarget(blurTarget);
-		renderer.render(DoFScene, depthCamera);
+		renderer.render(verticalBlurScene, depthCamera);
 
-		blurShaderMaterial.uniforms.tDiffuse.value = blurTarget.texture;
-		blurShaderMaterial.uniforms.tDepth.value = blurTarget.depthTexture;
+		horizontalBlurShaderMaterial.uniforms.tDiffuse.value = blurTarget.texture;
+		horizontalBlurShaderMaterial.uniforms.tDepth.value = blurTarget.depthTexture;
+
+		renderer.setRenderTarget(DoFTarget);
+		renderer.render(horizontalBlurScene, depthCamera);
+
+		DoFShaderMaterial.uniforms.tDiffuse.value = DoFTarget.texture;
+		DoFShaderMaterial.uniforms.tDepth.value = DoFTarget.depthTexture;
+		DoFShaderMaterial.uniforms.tOriginal.value = basicTarget.texture;
 
 		renderer.setRenderTarget(null);
-		renderer.render(blurScene, depthCamera);
+		renderer.render(DoFScene, depthCamera);
 	}
 
 
 	var controls = new OrbitControls(camera, renderer.domElement);
+	// controls.enableDamping = true;
 	controls.target = new THREE.Vector3(-3, 1, 0);
 	controls.addEventListener('change', function(){
 		switch(guiControls.whichScene){
