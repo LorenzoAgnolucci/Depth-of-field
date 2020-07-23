@@ -46,6 +46,7 @@ function main(){
 	// camera.lookAt(new THREE.Vector3(-5, 0, -10));
 
 	var renderer = new THREE.WebGLRenderer({antialias: true});
+	renderer.outputEncoding = THREE.GammaEncoding;
 	renderer.setSize(window.innerWidth, window.innerHeight);
 	renderer.setClearColor(0xeeeeee);
 	renderer.setPixelRatio( window.devicePixelRatio);
@@ -217,6 +218,7 @@ function main(){
 
 	var basicTarget = new THREE.WebGLRenderTarget( window.innerWidth, window.innerHeight );
 	basicTarget.texture.format = THREE.RGBFormat;
+	basicTarget.texture.encoding = THREE.sRGBEncoding;
 	basicTarget.texture.minFilter = THREE.NearestFilter;
 	basicTarget.texture.magFilter = THREE.NearestFilter;
 	basicTarget.texture.generateMipmaps = false;
