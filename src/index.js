@@ -46,7 +46,6 @@ function main(){
 	// camera.lookAt(new THREE.Vector3(-5, 0, -10));
 
 	var renderer = new THREE.WebGLRenderer({antialias: true});
-	// renderer.outputEncoding = THREE.GammaEncoding;
 	renderer.setSize(window.innerWidth, window.innerHeight);
 	renderer.setClearColor(0xeeeeee);
 	renderer.setPixelRatio( window.devicePixelRatio);
@@ -203,7 +202,8 @@ function main(){
 			tOriginal: {value: null},
 			texelHeight: {value: 1.0 / window.innerHeight.toFixed(1)},
 			texelWidth: {value: 1.0 / window.innerWidth.toFixed(1)},
-			bokehBlurSize: {value: 4.0}
+			bokehBlurSize: {value: 4.0},
+			dofEnabled: {value: true}
 		}
 	});
 	var DoFPlane = new THREE.PlaneBufferGeometry(2, 2);
@@ -299,7 +299,7 @@ function main(){
 	}
 	{
 		const folder = gui.addFolder("Render scene");
-		folder.add(guiControls, "whichScene", ["Basic", "CoC", "Depth", "DoF"]).name("Scene")
+		folder.add(guiControls, "whichScene", ["Depth", "CoC", "DoF"]).name("Scene")
 		folder.open();
 	}
 	{
@@ -311,6 +311,12 @@ function main(){
 		folder.open();
 	}
 
+	{
+		const folder = gui.addFolder("DoF parameters")
+		folder.add(DoFShaderMaterial.uniforms.dofEnabled, "value").name("DoF enabled");
+		folder.open()
+	}
+
 	var stats = new Stats();
 	document.body.appendChild(stats.dom);
 
@@ -318,14 +324,11 @@ function main(){
 
 	function animate(){
 		switch(guiControls.whichScene){
-			case "Basic":
-				render();
+			case "Depth":
+				renderScene(depthScene);
 				break;
 			case "CoC":
 				renderScene(cocScene);
-				break;
-			case "Depth":
-				renderScene(depthScene);
 				break;
 			case "DoF":
 				renderDoF();
@@ -333,10 +336,6 @@ function main(){
 		}
 		stats.update();
 		requestAnimationFrame(animate);
-	}
-
-	function render(){
-		renderer.render(scene, camera);
 	}
 
 	function renderScene(sceneToRender){
@@ -393,14 +392,11 @@ function main(){
 	controls.target = new THREE.Vector3(-3, 1, 0);
 	controls.addEventListener('change', function(){
 		switch(guiControls.whichScene){
-			case "Basic":
-				render();
+			case "Depth":
+				renderScene(depthScene);
 				break;
 			case "CoC":
 				renderScene(cocScene);
-				break;
-			case "Depth":
-				renderScene(depthScene);
 				break;
 			case "DoF":
 				renderDoF();

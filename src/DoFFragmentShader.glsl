@@ -9,6 +9,8 @@ uniform float bokehBlurSize;
 uniform float texelWidth;
 uniform float texelHeight;
 
+uniform bool dofEnabled;
+
 float getWeight(float dist, float maxDist){
     return 1.0 - dist/maxDist;
 }
@@ -19,23 +21,30 @@ void main() {
 
     vec3 sourceColor = texture2D(tOriginal, vUv).rgb;
 
-    float CoC = max(texture2D(tDiffuse, vUv).g, texture2D(tDiffuse, vUv).b);
+    gl_FragColor.rgb = sourceColor;
+    gl_FragColor.a = 1.0;
 
-    for (float i=-bokehBlurSize; i<bokehBlurSize+1.0; i++){
-        for (float j=-bokehBlurSize; j<bokehBlurSize+1.0; j++){
-            vec2 dir = vec2(i, j) * vec2(texelWidth, texelHeight);
-            float dist = length(dir);
-            if (dist > bokehBlurSize){
-                continue;
+    float CoC = max(texture2D(tDiffuse, vUv).g, texture2D(tDiffuse, vUv).b);
+    if(dofEnabled){
+        if (CoC > 1e-2){
+            for (float i=-bokehBlurSize; i<bokehBlurSize+1.0; i++){
+                for (float j=-bokehBlurSize; j<bokehBlurSize+1.0; j++){
+                    vec2 dir = vec2(i, j) * vec2(texelWidth, texelHeight);
+                    float dist = length(dir);
+                    if (dist > bokehBlurSize){
+                        continue;
+                    }
+                    vec2 curUv = dir + vUv;
+                    float weight = getWeight(dist, bokehBlurSize);
+                    bokehBlurWeightTotal += weight;
+                    blurColor +=  weight * texture2D(tOriginal, curUv).rgb;
+                }
             }
-            vec2 curUv = dir + vUv;
-            float weight = getWeight(dist, bokehBlurSize);
-            bokehBlurWeightTotal += weight;
-            blurColor +=  weight * texture2D(tOriginal, curUv).rgb;
+            blurColor /= bokehBlurWeightTotal;
+
+            gl_FragColor.rgb = mix(sourceColor, blurColor, CoC);
+            gl_FragColor.a = 1.0;
         }
     }
-    blurColor /= bokehBlurWeightTotal;
 
-    gl_FragColor.rgb = mix(sourceColor, blurColor, CoC);
-    gl_FragColor.a = 1.0;
 }
