@@ -288,6 +288,7 @@ function main(){
 	depthComposer.addPass(copyPass);
 
  */
+
 	var gui = new GUI();
 
 	var guiControls = new function(){
@@ -300,7 +301,7 @@ function main(){
 	}
 	{
 		const folder = gui.addFolder("Render scene");
-		folder.add(guiControls, "whichScene", ["Depth", "CoC", "DoF"]).name("Scene")
+		folder.add(guiControls, "whichScene", ["Depth", "CoC", "DoF"]).name("Scene").onChange(whichSceneToRender);
 		folder.open();
 	}
 	{
@@ -312,12 +313,10 @@ function main(){
 		folder.open();
 	}
 
-	{
-		const folder = gui.addFolder("DoF parameters")
-		folder.add(DoFShaderMaterial.uniforms.dofEnabled, "value").name("DoF enabled");
-		folder.add(DoFShaderMaterial.uniforms.showFocus, "value").name("Show focus");
-		folder.open()
-	}
+	var folderDoFParameters = gui.addFolder("DoF parameters")
+	folderDoFParameters.add(DoFShaderMaterial.uniforms.dofEnabled, "value").name("DoF enabled");
+	folderDoFParameters.add(DoFShaderMaterial.uniforms.showFocus, "value").name("Show focus");
+	folderDoFParameters.open()
 
 	var stats = new Stats();
 	document.body.appendChild(stats.dom);
@@ -325,6 +324,12 @@ function main(){
 	animate();
 
 	function animate(){
+		whichSceneToRender();
+		stats.update();
+		requestAnimationFrame(animate);
+	}
+
+	function whichSceneToRender(){
 		switch(guiControls.whichScene){
 			case "Depth":
 				renderScene(depthScene);
@@ -336,11 +341,10 @@ function main(){
 				renderDoF();
 				break;
 		}
-		stats.update();
-		requestAnimationFrame(animate);
 	}
 
 	function renderScene(sceneToRender){
+		hideGUIFolder(folderDoFParameters, false);
 
 		renderer.setRenderTarget(basicTarget);
 		renderer.render(scene, camera);
@@ -356,6 +360,8 @@ function main(){
 	}
 	
 	function renderDoF(){
+		hideGUIFolder(folderDoFParameters, true);
+
 		renderer.setRenderTarget(basicTarget);
 		renderer.render(scene, camera);
 
@@ -402,17 +408,7 @@ function main(){
 	// controls.enableDamping = true;
 	controls.target = new THREE.Vector3(-3, 1, 0);
 	controls.addEventListener('change', function(){
-		switch(guiControls.whichScene){
-			case "Depth":
-				renderScene(depthScene);
-				break;
-			case "CoC":
-				renderScene(cocScene);
-				break;
-			case "DoF":
-				renderDoF();
-				break;
-		}
+		whichSceneToRender();
 	});
 	controls.update();      //required if dampling is enabled
 
@@ -422,6 +418,15 @@ function main(){
 		camera.updateProjectionMatrix();
 	})
 
+}
+
+function hideGUIFolder(folder, isShown){
+	if(isShown){
+		folder.domElement.style.display = "";
+	}
+	else{
+		folder.domElement.style.display = "none";
+	}
 }
 
 main();
