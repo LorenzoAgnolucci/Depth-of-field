@@ -5,7 +5,7 @@ import { BokehPass } from "three/examples/jsm/postprocessing/BokehPass";
 // import { BokehShader } from "three/examples/jsm/shaders/BokehShader";
 import { BokehShader } from "three/examples/jsm/shaders/BokehShader2"
 import {EffectComposer} from "three/examples/jsm/postprocessing/EffectComposer";
-import tesla from "../models/tesla_model_s/scene.gltf"
+// import tesla from "../models/tesla_model_s/scene.gltf"
 import london_hall from "../models/hintze_hall_nhm_london_surface_model/scene.gltf"
 import {RenderPass} from "three/examples/jsm/postprocessing/RenderPass";
 import {GUI} from "three/examples/jsm/libs/dat.gui.module.js";
@@ -46,7 +46,7 @@ function main(){
 	// camera.lookAt(new THREE.Vector3(-5, 0, -10));
 
 	var renderer = new THREE.WebGLRenderer({antialias: true});
-	renderer.outputEncoding = THREE.GammaEncoding;
+	// renderer.outputEncoding = THREE.GammaEncoding;
 	renderer.setSize(window.innerWidth, window.innerHeight);
 	renderer.setClearColor(0xeeeeee);
 	renderer.setPixelRatio( window.devicePixelRatio);
@@ -103,11 +103,6 @@ function main(){
 	var directionalLight = new THREE.DirectionalLight("#c9c7c7", 2);
 	directionalLight.target = sphere;
 	scene.add(directionalLight);
-
-	var teslaLight = new THREE.DirectionalLight("#c9c7c7", 50);
-	teslaLight.position.set(-10, 20, 10);
-	scene.add(teslaLight);
-
 
 	var cameraParameters = {
 		focalDepth : 0.11,
@@ -296,15 +291,23 @@ function main(){
 
 	var guiControls = new function(){
 		this.whichScene = "DoF";
+		this.resetParameters = function(){
+			cocShaderMaterial.uniforms.focalDepth.value = cameraParameters.focalDepth;
+			cocShaderMaterial.uniforms.focalLength.value = cameraParameters.focalLength;
+			cocShaderMaterial.uniforms.fstop.value = cameraParameters.fstop;
+		}
 	}
 	{
-		const folder = gui.addFolder("Rendered scene");
+		const folder = gui.addFolder("Render scene");
 		folder.add(guiControls, "whichScene", ["Basic", "CoC", "Depth", "DoF"]).name("Scene")
 		folder.open();
 	}
 	{
 		const folder = gui.addFolder("Camera parameters");
-		folder.add(cameraParameters, "focalDepth", 0.0, 1.0).name("Focal depth").step(0.01);
+		folder.add(cocShaderMaterial.uniforms.focalDepth, "value", 0.0, 1.0).name("Focal depth").step(0.001).listen();
+		folder.add(cocShaderMaterial.uniforms.focalLength, "value", 12.0, 100.0).name("Focal length").step(1.0).listen();
+		folder.add(cocShaderMaterial.uniforms.fstop, "value", 1.4, 22.0).name("F-stop").step(0.1).listen();
+		folder.add(guiControls, "resetParameters").name("Reset parameters");
 		folder.open();
 	}
 
