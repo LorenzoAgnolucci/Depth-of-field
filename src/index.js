@@ -202,8 +202,9 @@ function main(){
 			tOriginal: {value: null},
 			texelHeight: {value: 1.0 / window.innerHeight.toFixed(1)},
 			texelWidth: {value: 1.0 / window.innerWidth.toFixed(1)},
-			bokehBlurSize: {value: 4.0},
-			dofEnabled: {value: true}
+			bokehBlurSize: {value: 3.0},
+			dofEnabled: {value: true},
+			showFocus: {value: false}
 		}
 	});
 	var DoFPlane = new THREE.PlaneBufferGeometry(2, 2);
@@ -314,6 +315,7 @@ function main(){
 	{
 		const folder = gui.addFolder("DoF parameters")
 		folder.add(DoFShaderMaterial.uniforms.dofEnabled, "value").name("DoF enabled");
+		folder.add(DoFShaderMaterial.uniforms.showFocus, "value").name("Show focus");
 		folder.open()
 	}
 
@@ -365,7 +367,7 @@ function main(){
 
 		renderer.setRenderTarget(cocTarget);
 		renderer.render(cocScene, depthCamera);
-
+		/*
 		verticalBlurShaderMaterial.uniforms.tDiffuse.value = cocTarget.texture;
 		verticalBlurShaderMaterial.uniforms.tDepth.value = cocTarget.depthTexture;
 
@@ -384,6 +386,15 @@ function main(){
 
 		renderer.setRenderTarget(null);
 		renderer.render(DoFScene, depthCamera);
+
+		 */
+		DoFShaderMaterial.uniforms.tDiffuse.value = cocTarget.texture;
+		DoFShaderMaterial.uniforms.tDepth.value = cocTarget.depthTexture;
+		DoFShaderMaterial.uniforms.tOriginal.value = basicTarget.texture;
+
+		renderer.setRenderTarget(null);
+		renderer.render(DoFScene, depthCamera);
+
 	}
 
 

@@ -10,15 +10,13 @@ uniform float texelWidth;
 uniform float texelHeight;
 
 uniform bool dofEnabled;
+uniform bool showFocus;
 
 float getWeight(float dist, float maxDist){
     return 1.0 - dist/maxDist;
 }
 
 void main() {
-    float bokehBlurWeightTotal = 0.0;
-    vec3 blurColor = vec3(0.0);
-
     vec3 sourceColor = texture2D(tOriginal, vUv).rgb;
 
     gl_FragColor.rgb = sourceColor;
@@ -26,7 +24,9 @@ void main() {
 
     float CoC = max(texture2D(tDiffuse, vUv).g, texture2D(tDiffuse, vUv).b);
     if(dofEnabled){
-        if (CoC > 1e-2){
+        if (CoC > 0.1){
+            float bokehBlurWeightTotal = 0.0;
+            vec3 blurColor = vec3(0.0);
             for (float i=-bokehBlurSize; i<bokehBlurSize+1.0; i++){
                 for (float j=-bokehBlurSize; j<bokehBlurSize+1.0; j++){
                     vec2 dir = vec2(i, j) * vec2(texelWidth, texelHeight);
@@ -44,6 +44,12 @@ void main() {
 
             gl_FragColor.rgb = mix(sourceColor, blurColor, CoC);
             gl_FragColor.a = 1.0;
+        }
+        else{
+            if(showFocus){
+                gl_FragColor.rgb = mix(sourceColor, vec3(0.988, 0.596, 0.011), (1.0 - CoC * 10.0));
+                gl_FragColor.a = 1.0;
+            }
         }
     }
 
