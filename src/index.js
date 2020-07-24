@@ -212,53 +212,13 @@ function main(){
 	DoFScene = new Scene();
 	DoFScene.add(DoFQuad);
 
-	var basicTarget = new THREE.WebGLRenderTarget( window.innerWidth, window.innerHeight );
-	basicTarget.texture.format = THREE.RGBFormat;
-	basicTarget.texture.encoding = THREE.sRGBEncoding;
-	basicTarget.texture.minFilter = THREE.NearestFilter;
-	basicTarget.texture.magFilter = THREE.NearestFilter;
-	basicTarget.texture.generateMipmaps = false;
-	basicTarget.stencilBuffer = false;
-	basicTarget.depthBuffer = true;
-	basicTarget.depthTexture = new THREE.DepthTexture();
-	basicTarget.depthTexture.format = THREE.DepthFormat;
-	basicTarget.depthTexture.type = THREE.UnsignedIntType;
+	var basicTarget = getRenderTarget();
 
-	var cocTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
-	// cocTarget.setSize(innerWidth / 2, innerHeight / 2);     // Lower resolution for blur
-	cocTarget.texture.format = THREE.RGBFormat;
-	cocTarget.texture.minFilter = THREE.NearestFilter;
-	cocTarget.texture.magFilter = THREE.NearestFilter;
-	cocTarget.texture.generateMipmaps = false;
-	cocTarget.stencilBuffer = false;
-	cocTarget.depthBuffer = true;
-	cocTarget.depthTexture = new THREE.DepthTexture();
-	cocTarget.depthTexture.format = THREE.DepthFormat;
-	cocTarget.depthTexture.type = THREE.UnsignedIntType;
+	var cocTarget = getRenderTarget();
 
-	var blurTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
-	blurTarget.setSize(innerWidth, innerHeight);     // Lower resolution for blur
-	blurTarget.texture.format = THREE.RGBFormat;
-	blurTarget.texture.minFilter = THREE.NearestFilter;
-	blurTarget.texture.magFilter = THREE.NearestFilter;
-	blurTarget.texture.generateMipmaps = false;
-	blurTarget.stencilBuffer = false;
-	blurTarget.depthBuffer = true;
-	blurTarget.depthTexture = new THREE.DepthTexture();
-	blurTarget.depthTexture.format = THREE.DepthFormat;
-	blurTarget.depthTexture.type = THREE.UnsignedIntType;
+	var blurTarget = getRenderTarget();
 
-	var DoFTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
-	DoFTarget.setSize(innerWidth, innerHeight);     // Lower resolution for DoF
-	DoFTarget.texture.format = THREE.RGBFormat;
-	DoFTarget.texture.minFilter = THREE.NearestFilter;
-	DoFTarget.texture.magFilter = THREE.NearestFilter;
-	DoFTarget.texture.generateMipmaps = false;
-	DoFTarget.stencilBuffer = false;
-	DoFTarget.depthBuffer = true;
-	DoFTarget.depthTexture = new THREE.DepthTexture();
-	DoFTarget.depthTexture.format = THREE.DepthFormat;
-	DoFTarget.depthTexture.type = THREE.UnsignedIntType;
+	var DoFTarget = getRenderTarget();
 
 	// Effect Composer
 /*
@@ -427,6 +387,22 @@ function hideGUIFolder(folder, isShown){
 	else{
 		folder.domElement.style.display = "none";
 	}
+}
+
+function getRenderTarget(){
+	let target = new THREE.WebGLMultisampleRenderTarget(window.innerWidth, window.innerHeight);
+	target.samples = 4;
+	target.texture.format = THREE.RGBFormat;
+	target.texture.encoding = THREE.sRGBEncoding;
+	target.texture.minFilter = THREE.NearestFilter;
+	target.texture.magFilter = THREE.NearestFilter;
+	target.texture.generateMipmaps = false;
+	target.stencilBuffer = false;
+	target.depthBuffer = true;
+	target.depthTexture = new THREE.DepthTexture();
+	target.depthTexture.format = THREE.DepthFormat;
+	target.depthTexture.type = THREE.UnsignedIntType;
+	return target;
 }
 
 main();
