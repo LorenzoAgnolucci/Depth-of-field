@@ -10,6 +10,8 @@ uniform float focalDepth;       // Focal distance value in meters
 uniform float focalLength;      // Focal length in mm
 uniform float fstop;        // F-stop value
 
+uniform bool mouseFocus;
+uniform vec2 mouseCoords;
 
 float readDepth( sampler2D depthSampler, vec2 coord ) {
     float fragCoordZ = texture2D( depthSampler, coord ).x;
@@ -22,6 +24,11 @@ float readDepth( sampler2D depthSampler, vec2 coord ) {
 void main() {
     float depth = readDepth( tDepth, vUv );
     float focalDepthMM = focalDepth * 1000.0;       // Focal depth in millimeters
+    if(mouseFocus){
+        float mouseDepth = readDepth(tDepth, mouseCoords);
+        float mouseFocalDepth = - cameraFar * cameraNear / (mouseDepth * (cameraFar - cameraNear) - cameraFar);
+        focalDepthMM = mouseFocalDepth * 1000.0;
+    }
     float objectDistance = - cameraFar * cameraNear / (depth * (cameraFar - cameraNear) - cameraFar);
     objectDistance = objectDistance * 1000.0;       // Object distance in millimeters
 
