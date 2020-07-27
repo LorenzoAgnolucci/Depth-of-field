@@ -16,6 +16,9 @@ float getWeight(float dist, float maxDist){
     return 1.0 - dist/maxDist;
 }
 
+//TODO: Define constant for 0.2 min CoC
+//TODO: Change showFocus color
+
 void main() {
     vec3 sourceColor = texture2D(tOriginal, vUv).rgb;
 
@@ -35,9 +38,12 @@ void main() {
                         continue;
                     }
                     vec2 curUv = dir + vUv;
-                    float weight = getWeight(dist, bokehBlurSize);
-                    bokehBlurWeightTotal += weight;
-                    blurColor +=  weight * texture2D(tOriginal, curUv).rgb;
+                    float curCoC = max(texture2D(tDiffuse, curUv).g, texture2D(tDiffuse, curUv).b);
+                    if(curCoC > 0.1){
+                        float weight = getWeight(dist, bokehBlurSize);
+                        bokehBlurWeightTotal += weight;
+                        blurColor +=  weight * texture2D(tOriginal, curUv).rgb;
+                    }
                 }
             }
             blurColor /= bokehBlurWeightTotal;
@@ -52,5 +58,4 @@ void main() {
             }
         }
     }
-
 }
