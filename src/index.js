@@ -1,13 +1,8 @@
 import * as THREE from 'three';
 import {OrbitControls} from "three/examples/jsm/controls/OrbitControls";
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { BokehPass } from "three/examples/jsm/postprocessing/BokehPass";
-// import { BokehShader } from "three/examples/jsm/shaders/BokehShader";
-import { BokehShader } from "three/examples/jsm/shaders/BokehShader2"
-import {EffectComposer} from "three/examples/jsm/postprocessing/EffectComposer";
 // import tesla from "../models/tesla_model_s/scene.gltf"
 import london_hall from "../models/hintze_hall_nhm_london_surface_model/scene.gltf"
-import {RenderPass} from "three/examples/jsm/postprocessing/RenderPass";
 import {GUI} from "three/examples/jsm/libs/dat.gui.module.js";
 import px from "../models/background/cube/px.png"
 import nx from "../models/background/cube/nx.png"
@@ -15,8 +10,6 @@ import py from "../models/background/cube/py.png"
 import ny from "../models/background/cube/ny.png"
 import pz from "../models/background/cube/pz.png"
 import nz from "../models/background/cube/nz.png"
-import {ShaderPass} from "three/examples/jsm/postprocessing/ShaderPass";
-import {CopyShader} from "three/examples/jsm/shaders/CopyShader";
 import Stats from "three/examples/jsm/libs/stats.module"
 import depthVertexShader from "./DepthVertexShader.glsl"
 import depthFragmentShader from "./DepthFragmentShader.glsl"
@@ -25,11 +18,10 @@ import blurFragmentShader from "./BlurFragmentShader.glsl"
 import DoFFragmentShader from "./DoFFragmentShader.glsl"
 import {Scene} from "three";
 
+var mouse = new THREE.Vector2();
 
 function main(){
 	var scene = new THREE.Scene();
-	// TODO: Find a more elegant way to add background (maybe something like scene.background = new THREE.WebGLCubeRenderTarget( 1024, options ).fromEquirectangularTexture( renderer, texture );)
-	// TODO: Otherwise see test_gui.js for an example
 	scene.background = new THREE.CubeTextureLoader().load([px, nx, py, ny, pz, nz])
 
 	var axesHelper = new THREE.AxesHelper(5);
@@ -80,12 +72,7 @@ function main(){
 	loader.load(london_hall, function ( gltf ) {
 
 		gltf.scene.position.set(-5, 20, -27);
-		gltf.scene.scale.set(5, 5, 5)
-		gltf.scene.traverse( child => {
-			if ( child.material ) child.material.metalness = 0.0;
-
-		} );
-
+		gltf.scene.scale.set(5, 5, 5);
 		scene.add( gltf.scene );
 
 	}, undefined, function ( error ) {
@@ -137,9 +124,11 @@ function main(){
 			cameraFar: { value: camera.far },
 			tDiffuse: { value: null },
 			tDepth: { value: null },
-			focalDepth: {value: cameraParameters.focalDepth}, //0.4
-			focalLength: {value: cameraParameters.focalLength}, //0.1
-			fstop: {value: cameraParameters.fstop}
+			focalDepth: {value: cameraParameters.focalDepth},
+			focalLength: {value: cameraParameters.focalLength},
+			fstop: {value: cameraParameters.fstop},
+			mouseFocus: {value: true},
+			mouseCoords: {value: mouse}
 		}
 	})
 
@@ -157,8 +146,8 @@ function main(){
 			cameraFar: {value: camera.far},
 			tDiffuse: {value: null},
 			tDepth: {value: null},
-			focalDepth: {value: cameraParameters.focalDepth}, //0.4
-			focalLength: {value: cameraParameters.focalLength}, //0.1
+			focalDepth: {value: cameraParameters.focalDepth},
+			focalLength: {value: cameraParameters.focalLength},
 			fstop: {value: cameraParameters.fstop},
 			widthTexel: {value: 1.0 / window.innerHeight.toFixed(1)},
 			heightTexel: {value: 1.0 / window.innerWidth.toFixed(1)},
@@ -179,8 +168,8 @@ function main(){
 			cameraFar: {value: camera.far},
 			tDiffuse: {value: null},
 			tDepth: {value: null},
-			focalDepth: {value: cameraParameters.focalDepth}, //0.4
-			focalLength: {value: cameraParameters.focalLength}, //0.1
+			focalDepth: {value: cameraParameters.focalDepth},
+			focalLength: {value: cameraParameters.focalLength},
 			fstop: {value: cameraParameters.fstop},
 			widthTexel: {value: 1.0 / window.innerHeight.toFixed(1)},
 			heightTexel: {value: 1.0 / window.innerWidth.toFixed(1)},
@@ -220,34 +209,6 @@ function main(){
 
 	var DoFTarget = getRenderTarget();
 
-	// Effect Composer
-/*
-	var renderComposer = new EffectComposer(renderer, basicTarget);
-	var renderPass = new RenderPass(scene, camera);
-	renderComposer.addPass(renderPass);
-
-	var depthComposer = new EffectComposer(renderer)
-	depthComposer.addPass(new RenderPass(scene, camera))
-
-	var depthShader = {
-		vertexShader: depthVertexShader,
-		fragmentShader: depthFragmentShader,
-		uniforms: {
-			cameraNear: { value: camera.near },
-			cameraFar: { value: camera.far },
-			tDiffuse: { value: null },
-			tDepth: { value: null }
-		}
-	}
-	var depthPass = new ShaderPass(depthShaderMaterial);
-	depthPass.uniforms.tDepth.value = basicTarget.depthTexture;
-	depthPass.uniforms.tDiffuse.value = basicTarget.texture;
-	depthComposer.addPass(depthPass);
-	var copyPass = new ShaderPass(CopyShader);
-	copyPass.renderToScreen = true;
-	depthComposer.addPass(copyPass);
-
- */
 
 	var gui = new GUI();
 
@@ -269,13 +230,14 @@ function main(){
 		folder.add(cocShaderMaterial.uniforms.focalDepth, "value", 0.0, 1.0).name("Focal depth").step(0.001).listen();
 		folder.add(cocShaderMaterial.uniforms.focalLength, "value", 12.0, 100.0).name("Focal length").step(1.0).listen();
 		folder.add(cocShaderMaterial.uniforms.fstop, "value", 1.4, 22.0).name("F-stop").step(0.1).listen();
+		folder.add(cocShaderMaterial.uniforms.mouseFocus, "value").name("Focus mouse").listen();
 		folder.add(guiControls, "resetParameters").name("Reset parameters");
 		folder.open();
 	}
 
 	var folderDoFParameters = gui.addFolder("DoF parameters")
-	folderDoFParameters.add(DoFShaderMaterial.uniforms.dofEnabled, "value").name("DoF enabled");
-	folderDoFParameters.add(DoFShaderMaterial.uniforms.showFocus, "value").name("Show focus");
+	folderDoFParameters.add(DoFShaderMaterial.uniforms.dofEnabled, "value").name("DoF enabled").listen();
+	folderDoFParameters.add(DoFShaderMaterial.uniforms.showFocus, "value").name("Show focus").listen();
 	folderDoFParameters.open()
 
 	var stats = new Stats();
@@ -318,7 +280,7 @@ function main(){
 		renderer.setRenderTarget(null);
 		renderer.render(sceneToRender, depthCamera);
 	}
-	
+
 	function renderDoF(){
 		hideGUIFolder(folderDoFParameters, true);
 
@@ -333,7 +295,7 @@ function main(){
 
 		renderer.setRenderTarget(cocTarget);
 		renderer.render(cocScene, depthCamera);
-		/*
+
 		verticalBlurShaderMaterial.uniforms.tDiffuse.value = cocTarget.texture;
 		verticalBlurShaderMaterial.uniforms.tDepth.value = cocTarget.depthTexture;
 
@@ -352,24 +314,18 @@ function main(){
 
 		renderer.setRenderTarget(null);
 		renderer.render(DoFScene, depthCamera);
-
-		 */
-		DoFShaderMaterial.uniforms.tDiffuse.value = cocTarget.texture;
-		DoFShaderMaterial.uniforms.tDepth.value = cocTarget.depthTexture;
-		DoFShaderMaterial.uniforms.tOriginal.value = basicTarget.texture;
-
-		renderer.setRenderTarget(null);
-		renderer.render(DoFScene, depthCamera);
-
 	}
 
+	document.addEventListener( 'mousemove', onDocumentMouseMove, false );
 
 	var controls = new OrbitControls(camera, renderer.domElement);
 	// controls.enableDamping = true;
 	controls.target = new THREE.Vector3(-3, 1, 0);
+
 	controls.addEventListener('change', function(){
 		whichSceneToRender();
 	});
+
 	controls.update();      //required if dampling is enabled
 
 	window.addEventListener("resize", _ => {
@@ -378,6 +334,11 @@ function main(){
 		camera.updateProjectionMatrix();
 	})
 
+	function onDocumentMouseMove( event ) {
+		event.preventDefault();
+		mouse.x = ((event.clientX - 8.0) / window.innerWidth); // Subtract 8 pixels for the white bezel on the left of the canvas
+		mouse.y = 1.0 - ((event.clientY) / window.innerHeight);
+	}
 }
 
 function hideGUIFolder(folder, isShown){
