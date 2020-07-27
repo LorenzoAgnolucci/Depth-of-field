@@ -21,24 +21,29 @@ float readDepth( sampler2D depthSampler, vec2 coord ) {
     return viewZToOrthographicDepth( viewZ, cameraNear, cameraFar );
 }
 
+float getWeight(float dist, float maxDist){
+    return 1.0 - dist/maxDist;
+}
+
 void main() {
-    float weight[7] = float[](0.1633, 0.1531, 0.12245, 0.0918, 0.051, 0.02, 0.009);
+    float weight[5] = float[](0.3533, 0.1631, 0.12245, 0.1018, 0.081);
     vec2 blurDirection;
-    if(horizontalBlur){
+    if (horizontalBlur){
         blurDirection = vec2(widthTexel, 0.0);
     }
-    else{
+    else {
         blurDirection = vec2(0.0, heightTexel);
     }
 
-    vec3 fragColor = texture2D(tDiffuse, vUv).rgb * weight[0];
+    float fragColorGreen = texture2D(tDiffuse, vUv).g * weight[0];
 
-    for(int i=1; i<7; i++){
-        fragColor += texture2D(tDiffuse, (vUv + float(i) * blurDirection)).rgb * weight[i];
-        fragColor += texture2D(tDiffuse, (vUv - float(i) * blurDirection)).rgb * weight[i];
+    for (int i = 1; i < 5; i++){
+        fragColorGreen += texture2D(tDiffuse, (vUv + float(i) * blurDirection)).g * weight[i];
+        fragColorGreen += texture2D(tDiffuse, (vUv - float(i) * blurDirection)).g * weight[i];
     }
 
-    gl_FragColor.rgb = fragColor;
+    gl_FragColor.g = fragColorGreen;
+    gl_FragColor.b = texture2D(tDiffuse, vUv).b;
 
     gl_FragColor.a = 1.0;
 }
