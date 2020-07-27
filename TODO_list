@@ -1,0 +1,15 @@
+TO-DO List:
+1) Lower London Hall size (and change its position accordingly) to be able to reduce camera.far parameter
+2) Replace the urban background with a simple clear color
+3) Limit OrbitControls to not move outside London Hall
+// 4) Find out how to make simple objects (e.g a sphere) in a recurrent pattern (e.g up and down, left and right)
+5) Change showFocus color in DoFFragmentShader to be only orange
+6) Change all "var" in JS to "let" and "const"
+// 7) Fix the GUI
+8) Refactor index.js to avoid duplicated code
+9) Implement compression to reduce 3D model loading times
+10) Add loading splash screen while the 3D model is loading (like in the postprocessing library)
+11) Update GLSL shaders to OpenGL ES 3.0
+12) Find out how to host demo on Github
+13) Fix antialiasing that does not work after resize
+14) Remove useless uniform parameters from shader (e.g. blur shader)
