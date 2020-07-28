@@ -5,6 +5,10 @@ import velocityFragmentShader from "./VelocityFragmentShader.glsl"
 import {EffectComposer} from "three/examples/jsm/postprocessing/EffectComposer";
 import {RenderPass} from "three/examples/jsm/postprocessing/RenderPass";
 import {ShaderPass} from "three/examples/jsm/postprocessing/ShaderPass";
+import depthVertexShader from "./DepthVertexShader.glsl";
+import depthFragmentShader from "./DepthFragmentShader.glsl";
+import {Scene} from "three";
+
 
 var scene = new THREE.Scene();
 
@@ -55,19 +59,40 @@ const velocityShader = {
 	fragmentShader: velocityFragmentShader
 }
 
+var velScene;
+var velCamera = new THREE.OrthographicCamera( - 1, 1, 1, - 1, 0, 1 );
+var velShaderMaterial = new THREE.ShaderMaterial({
+	vertexShader: velocityVertexShader,
+	fragmentShader: velocityFragmentShader,
+	uniforms: {
+		prevProjectionMatrix: {value: new THREE.Matrix4()},
+		prevModelViewMatrix: {value: new THREE.Matrix4()}
+	}
+});
+
+var velPlane = new THREE.PlaneBufferGeometry(2, 2);
+var velQuad = new THREE.Mesh(velPlane, velShaderMaterial);
+velScene = new Scene();
+velScene.add(velQuad);
+
 var target = getRenderTarget();
+
+/*
 var firstComposer = new EffectComposer(renderer);
 firstComposer.addPass(new RenderPass(scene, camera));
 var velocityPass = new ShaderPass(velocityShader);
 velocityPass.renderToScreen = true;
 firstComposer.addPass(velocityPass);
-
+*/
 
 var clock = new THREE.Clock();
 var time = 0;
 var delta = 0;
 
 render();
+var tmpProjMat = new THREE.Matrix4();
+var tmpMVMat = new THREE.Matrix4();
+
 
 function render() {
 	requestAnimationFrame(render);
@@ -76,15 +101,28 @@ function render() {
 	ball.rotation.x = time * 10;
 	ball.position.y = 0.5 + Math.abs(Math.sin(time * 3)) * 2;
 	ball.position.z = Math.cos(time) * 4;
-	// renderer.render(scene, camera);
-	firstComposer.render(delta);
-	velocityPass.uniforms.prevProjectionMatrix.value = camera.projectionMatrix;
-	velocityPass.uniforms.prevModelViewMatrix.value = camera.modelViewMatrix;
+
+	renderer.setRenderTarget(target);
+	renderer.render(scene, camera);
+	// camera.updateMatrix();
+	// camera.updateMatrixWorld();
+
+	tmpProjMat = camera.projectionMatrix;
+	tmpMVMat = camera.modelViewMatrix;
+
+	renderer.setRenderTarget(null);
+	renderer.render(velScene, velCamera);
+
+	velShaderMaterial.uniforms.prevProjectionMatrix.value = tmpProjMat;
+	velShaderMaterial.uniforms.prevModelViewMatrix.value = tmpMVMat;
+
+
+	// firstComposer.render(delta);
 }
 
 var controls = new OrbitControls(camera, renderer.domElement);
 // controls.enableDamping = true;
-// controls.target = new THREE.Vector3(-3, 1, 0);
+controls.target = new THREE.Vector3(-3, 1, 0);
 
 controls.addEventListener('change', function(){
 	render();
