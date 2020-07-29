@@ -163,7 +163,7 @@ MotionBlurPass.prototype = Object.assign( Object.create( Pass.prototype ), {
 
 		}
 
-		// reinitialize the camera matrices to the current pos becaues if
+		// reinitialize the camera matrices to the current pos because if
 		// the pass has been disabeled then the matrices will be out of date
 		if ( this._cameraMatricesNeedInitializing ) {
 
@@ -304,27 +304,29 @@ MotionBlurPass.prototype = Object.assign( Object.create( Pass.prototype ), {
 		// outputs the position of the current and last frame positions
 		return `
 		vec3 transformed;
+		
 		// Get the normal
 		${ THREE.ShaderChunk.beginnormal_vertex }
 		${ THREE.ShaderChunk.defaultnormal_vertex }
+		
 		// Get the current vertex position
 		transformed = vec3( position );
 		newPosition = modelViewMatrix * vec4(transformed, 1.0);
+		
 		// Get the previous vertex position
 		transformed = vec3( position );
 		prevPosition = prevModelViewMatrix * vec4(transformed, 1.0);
+		
 		// The delta between frames
 		vec3 delta = newPosition.xyz - prevPosition.xyz;
 		vec3 direction = normalize(delta);
+		
 		// Stretch along the velocity axes
-		// TODO: Can we combine the stretch and expand
 		float stretchDot = dot(direction, transformedNormal);
-		vec4 expandDir = vec4(direction, 0.0) * stretchDot * expandGeometry * length(delta);
-		vec4 newPosition2 =  projectionMatrix * (newPosition + expandDir);
-		vec4 prevPosition2 = prevProjectionMatrix * (prevPosition + expandDir);
+		
 		newPosition =  projectionMatrix * newPosition;
 		prevPosition = prevProjectionMatrix * prevPosition;
-		gl_Position = mix(newPosition2, prevPosition2, interpolateGeometry * (1.0 - step(0.0, stretchDot) ) );
+		gl_Position = mix(newPosition, prevPosition, interpolateGeometry * (1.0 - step(0.0, stretchDot) ) );
 		`;
 
 	},
@@ -436,7 +438,7 @@ MotionBlurPass.prototype = Object.assign( Object.create( Pass.prototype ), {
 				void main() {
 					vec2 vel = texture2D(velocityBuffer, vUv).xy;
 					vec4 result = texture2D(sourceBuffer, vUv);
-					for(int i = 1; i <= SAMPLES; i ++) {
+					for(int i = 1; i <= SAMPLES; i++) {
 						vec2 offset = vel * (float(i - 1) / float(SAMPLES) - 0.5);
 						result += texture2D(sourceBuffer, vUv + offset);
 					}
