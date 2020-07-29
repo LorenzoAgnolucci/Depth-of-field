@@ -29,21 +29,29 @@ import {MotionBlurPass} from "three/examples/jsm/postprocessing/MotionBlurPassCu
 
 var mouse = new THREE.Vector2();
 
-var params = {
+var cameraParameters = {
+	focalDepth : 0.11,
+	focalLength : 35,
+	fstop: 2.2
+};
+
+var motionBlurParameters = {
 	enabled: true,
 	cameraBlur: true,
 	animate: true,
 	samples: 15,
 	expandGeometry: 0,
-	interpolateGeometry: 1,
+	interpolateGeometry: 0.5,
 	smearIntensity: 0.5,
-	speed: 20,
+	speed: 8,
 	renderTargetScale: 1
 };
 
 function main(){
+	
+	// Scene
+	
 	var scene = new THREE.Scene();
-
 
 	var camera = new THREE.PerspectiveCamera(
 		75,                                   // Field of view
@@ -59,17 +67,6 @@ function main(){
 	renderer.setClearColor(0xeeeeee);
 	renderer.setPixelRatio( window.devicePixelRatio);
 	document.body.appendChild(renderer.domElement);
-
-	var standardMaterial = new THREE.MeshStandardMaterial( {
-		color: "#1136ac",
-		metalness: 0.5,
-	} );
-
-	var geom = new THREE.SphereBufferGeometry(0.5, 16, 8)
-	var ball = new THREE.Mesh(geom, standardMaterial);
-	// ball.position.set(-10, 0, 0);
-	// scene.add(ball);
-
 
 	var loader = new GLTFLoader();
 
@@ -87,14 +84,17 @@ function main(){
 
 	var loaderSpalding = new GLTFLoader();
 
-	var basketBall;
-	loaderSpalding.load(basket_bullet_ball, function ( gltf ) {
+	var basketBall, basketBall2;
+	loaderSpalding.load(spalding_ball, function ( gltf ) {
 
 		gltf.scene.position.set(-5, 0, 0);
-		gltf.scene.scale.set(3, 3, 3);
-		scene.add( gltf.scene );
+		gltf.scene.scale.set(0.5, 0.5, 0.5);
 
 		basketBall = gltf.scene;
+		scene.add(basketBall)
+		basketBall2 = basketBall.clone();
+		basketBall2.position.set(-10, 0, 35);
+		scene.add(basketBall2)
 
 	}, undefined, function ( error ) {
 
@@ -108,12 +108,7 @@ function main(){
 	var directionalLight = new THREE.DirectionalLight("#c9c7c7", 2);
 	scene.add(directionalLight);
 
-	var cameraParameters = {
-		focalDepth : 0.11,
-		focalLength : 35,
-		fstop: 2.2
-	};
-
+	// Effect composer
 
 	var antialiasingPass = new ShaderPass( FXAAShader );
 	antialiasingPass.uniforms[ 'resolution' ].value.set( 1 / window.innerWidth, 1 / window.innerHeight );
@@ -121,16 +116,6 @@ function main(){
 
 	var depthTarget = getRenderTarget();
 	var motionPass = new MotionBlurPass( scene, camera );
-
-	/*
-	var DoFTarget = getRenderTarget();
-	var basicComposer = new EffectComposer(renderer, DoFTarget);
-	basicComposer.addPass(new RenderPass(scene, camera));
-	// motionPass.renderToScreen = true;
-	basicComposer.addPass(motionPass);
-	basicComposer.addPass(antialiasingPass);
-
-	 */
 
 	const depthShader = {
 		vertexShader: depthVertexShader,
@@ -145,7 +130,6 @@ function main(){
 
 	var depthComposer = new EffectComposer(renderer);
 	var depthPass = new ShaderPass(depthShader);
-	// depthPass.renderToScreen = true;
 	depthComposer.addPass(depthPass);
 
 
@@ -172,7 +156,6 @@ function main(){
 
 	var CoCComposer = new EffectComposer(renderer);
 	var CoCPass = new ShaderPass(CoCShader);
-	// CoCPass.renderToScreen = true;
 	CoCComposer.addPass(CoCPass);
 
 	CoCComposer.addPass(motionPass);
@@ -236,75 +219,73 @@ function main(){
 	horizontalBlurPass.renderToScreen = false;
 	DoFComposer.addPass(horizontalBlurPass);
 	var DoFPass = new ShaderPass(DoFShader);
-	// DoFPass.renderToScreen = true;
-
-
 	DoFComposer.addPass(DoFPass);
-
 	DoFComposer.addPass(motionPass);
-
-
 	DoFComposer.addPass(antialiasingPass);
 
-
+	// GUI
+	
 	var gui = new GUI();
+	gui.width = 250;
 
 	var guiControls = new function(){
 		this.whichScene = "DoF";
-		this.resetParameters = function(){
+		this.resetCameraParameters = function(){
 			CoCPass.uniforms.focalDepth.value = cameraParameters.focalDepth;
 			CoCPass.uniforms.focalLength.value = cameraParameters.focalLength;
 			CoCPass.uniforms.fstop.value = cameraParameters.fstop;
 		}
+		this.resetMotionBlurParameters = function(){
+			motionPass.enabled = motionBlurParameters.enabled;
+			motionPass.samples = motionBlurParameters.samples;
+			motionPass.expandGeometry = motionBlurParameters.expandGeometry;
+			motionPass.interpolateGeometry = motionBlurParameters.interpolateGeometry;
+			motionPass.renderCameraBlur = motionBlurParameters.cameraBlur;
+			motionPass.smearIntensity = motionBlurParameters.smearIntensity;
+		}
 	}
 	{
-		const folder = gui.addFolder("Render scene");
-		folder.add(guiControls, "whichScene", ["Depth", "CoC", "DoF"]).name("Scene").onChange(whichSceneToRender);
-		folder.open();
+		const sceneFolder = gui.addFolder("Render scene");
+		sceneFolder.add(guiControls, "whichScene", ["Depth", "CoC", "DoF", "Geometry", "Velocity"]).name("Scene").onChange(whichSceneToRender);
+		sceneFolder.open();
 	}
 	{
-		const folder = gui.addFolder("Camera parameters");
-		folder.add(CoCPass.uniforms.focalDepth, "value", 0.0, 1.0).name("Focal depth").step(0.001).listen();
-		folder.add(CoCPass.uniforms.focalLength, "value", 12.0, 100.0).name("Focal length").step(1.0).listen();
-		folder.add(CoCPass.uniforms.fstop, "value", 1.4, 22.0).name("F-stop").step(0.1).listen();
-		folder.add(CoCPass.uniforms.mouseFocus, "value").name("Focus mouse").listen();
-		folder.add(guiControls, "resetParameters").name("Reset parameters");
-		folder.open();
+		const cameraParametersFolder = gui.addFolder("Camera parameters");
+		cameraParametersFolder.add(CoCPass.uniforms.focalDepth, "value", 0.0, 1.0).name("Focal depth").step(0.001).listen();
+		cameraParametersFolder.add(CoCPass.uniforms.focalLength, "value", 12.0, 100.0).name("Focal length").step(1.0).listen();
+		cameraParametersFolder.add(CoCPass.uniforms.fstop, "value", 1.4, 22.0).name("F-stop").step(0.1).listen();
+		cameraParametersFolder.add(CoCPass.uniforms.mouseFocus, "value").name("Focus mouse").listen();
+		cameraParametersFolder.add(guiControls, "resetCameraParameters").name("Reset parameters");
+		cameraParametersFolder.open();
 	}
 
-	var folderDoFParameters = gui.addFolder("DoF parameters")
-	folderDoFParameters.add(DoFPass.uniforms.dofEnabled, "value").name("DoF enabled").listen();
-	folderDoFParameters.add(DoFPass.uniforms.showFocus, "value").name("Show focus").listen();
-	folderDoFParameters.open()
+	{
+		var folderDoFParameters = gui.addFolder("DoF parameters")
+		folderDoFParameters.add(DoFPass.uniforms.dofEnabled, "value").name("DoF enabled").listen();
+		folderDoFParameters.add(DoFPass.uniforms.showFocus, "value").name("Show focus").listen();
+		folderDoFParameters.open();
+	}
 
-	var motionFolder = gui.addFolder( 'motion blur' );
-	motionFolder.add( params, 'enabled' );
-	motionFolder.add( params, 'cameraBlur' );
-	motionFolder.add( params, 'samples', 0, 50 );
-	motionFolder.add( params, 'smearIntensity', 0, 4 );
-	motionFolder.add( params, 'expandGeometry', 0, 1 );
-	motionFolder.add( params, 'interpolateGeometry', 0, 1 );
-	/*
-	motionFolder.add( params, 'renderTargetScale', 0, 1 )
-		.onChange( v => {
-			motionPass.renderTargetScale = v;
-			onWindowResize();
+	{
+		var motionFolder = gui.addFolder("Motion blur");
+		motionFolder.add(motionPass, "enabled").name("Motion blur enabled").listen();
+		motionFolder.add(motionPass, "renderCameraBlur").name("Camera Blur").listen();
+		motionFolder.add(motionPass, "samples", 0, 50).name("Samples").listen();
+		motionFolder.add(motionPass, "smearIntensity", 0, 1).name("Smearing").listen();
+		motionFolder.add(motionPass, "expandGeometry", 0, 1);
+		motionFolder.add(motionPass, "interpolateGeometry", 0, 1).name("InterpolateGeom").listen();
+		motionFolder.add(guiControls, "resetMotionBlurParameters").name("Reset parameters");
+		motionFolder.open();
+	}
 
-		} );
-
-	 */
-
-	motionFolder.add( motionPass.debug, 'display', {
-		'Motion Blur': MotionBlurPass.DEFAULT,
-		'Velocity': MotionBlurPass.VELOCITY,
-		'Geometry': MotionBlurPass.GEOMETRY
-	} ).onChange( val => motionPass.debug.display = parseFloat(val) );
-	motionFolder.open();
-
-	var animFolder = gui.addFolder( 'animation' );
-	animFolder.add( params, 'animate' );
-	animFolder.add( params, 'speed', 0, 50 );
-	animFolder.open();
+	{
+		var animFolder = gui.addFolder('Animation');
+		animFolder.add(motionBlurParameters, 'animate').name("Animate").listen();
+		animFolder.add(motionBlurParameters, 'speed', 0, 10).name("Speed").listen();
+		animFolder.open();
+	}
+	
+	// Render
 
 	var stats = new Stats();
 	document.body.appendChild(stats.dom);
@@ -315,28 +296,15 @@ function main(){
 	animate();
 
 	function animate(){
-
-		// basicComposer.render()
 		renderer.setRenderTarget(depthTarget);
 		renderer.render(scene, camera);
-		// basicComposer.render(0.1)
 		whichSceneToRender();
 		stats.update();
 		requestAnimationFrame(animate);
 	}
+	
 	var animatedOneFramePast = false;
 	function whichSceneToRender(){
-
-		// set the variables
-		motionPass.enabled = params.enabled;
-		motionPass.samples = params.samples;
-		motionPass.expandGeometry = params.expandGeometry;
-		motionPass.interpolateGeometry = params.interpolateGeometry;
-		motionPass.renderCameraBlur = params.cameraBlur;
-		motionPass.smearIntensity = params.smearIntensity;
-
-		// basicComposer.render(0.1)
-
 
 		depthPass.uniforms.tDiffuse.value = depthTarget.texture;
 		depthPass.uniforms.tDepth.value = depthTarget.depthTexture;
@@ -345,26 +313,25 @@ function main(){
 		CoCPass.uniforms.tDepth.value = depthTarget.depthTexture;
 		CoCPass.uniforms.mouseCoords.value = mouse;
 
+		motionPass.debug.display = MotionBlurPass.DEFAULT;
+
 		const deltaTime = clock.getDelta();
-		motionPass.debug.dontUpdateState = !params.animate;
+		motionPass.debug.dontUpdateState = !motionBlurParameters.animate;
 
-		if ( params.animate || animatedOneFramePast === false) {
+		if ( motionBlurParameters.animate || animatedOneFramePast === false) {
 
-			animTime += deltaTime * params.speed;
+			animTime += deltaTime * motionBlurParameters.speed;
 			if(basketBall){
-				basketBall.position.y = Math.sin( animTime ) * 10;
+				basketBall.position.y = Math.sin( animTime * 0.25) * 10;
 			}
-
-			// bo.rotation.x = animTime;
-			// bo.position.z = Math.cos(animTime);
-
-			animatedOneFramePast = !params.animate;
-
-
-		} else if ( params.animate ) {
-
+			if(basketBall2){
+				basketBall2.position.y = Math.abs(Math.sin( animTime * 0.25)) * 15;
+				basketBall2.position.x = Math.cos( animTime * 0.1) * 15;
+			}
+			animatedOneFramePast = !motionBlurParameters.animate;
+			
+		} else if ( motionBlurParameters.animate ) {
 			animatedOneFramePast = false;
-
 		}
 
 		switch(guiControls.whichScene){
@@ -379,6 +346,14 @@ function main(){
 			case "DoF":
 				hideGUIFolder(folderDoFParameters, true);
 				DoFPass.uniforms.tOriginal.value = depthTarget.texture;
+				DoFComposer.render(0.1);
+				break;
+			case "Geometry":
+				motionPass.debug.display = MotionBlurPass.GEOMETRY;
+				DoFComposer.render(0.1);
+				break;
+			case "Velocity":
+				motionPass.debug.display = MotionBlurPass.VELOCITY;
 				DoFComposer.render(0.1);
 				break;
 		}
@@ -422,7 +397,6 @@ function getRenderTarget(){
 	let target = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
 	target.texture.format = THREE.RGBFormat;
 	target.texture.encoding = THREE.sRGBEncoding;
-
 	target.texture.minFilter = THREE.NearestFilter;
 	target.texture.magFilter = THREE.NearestFilter;
 	target.texture.generateMipmaps = false;
