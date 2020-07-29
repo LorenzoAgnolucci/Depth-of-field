@@ -326,7 +326,7 @@ function main(){
 		whichSceneToRender();
 	});
 
-	controls.update();      //required if dampling is enabled
+	controls.update();      //required if damping is enabled
 
 	window.addEventListener("resize", _ => {
 		renderer.setSize(window.innerWidth, window.innerHeight);
@@ -355,6 +355,7 @@ function getRenderTarget(){
 	target.samples = 4;
 	target.texture.format = THREE.RGBFormat;
 	target.texture.encoding = THREE.sRGBEncoding;
+	
 	target.texture.minFilter = THREE.NearestFilter;
 	target.texture.magFilter = THREE.NearestFilter;
 	target.texture.generateMipmaps = false;
