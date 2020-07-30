@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import {OrbitControls} from "three/examples/jsm/controls/OrbitControls";
+// import {OrbitControls} from "three/examples/jsm/controls/OrbitControls";
+import {OrbitControls} from "./OrbitControls";
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 // import tesla from "../models/tesla_model_s/scene.gltf"
 import london_hall from "../models/hintze_hall_nhm_london_surface_model/scene.gltf"
@@ -40,11 +41,9 @@ var motionBlurParameters = {
 	cameraBlur: true,
 	animate: true,
 	samples: 15,
-	expandGeometry: 0,
 	interpolateGeometry: 0.5,
-	smearIntensity: 0.5,
+	smearIntensity: 0.25,
 	speed: 8,
-	renderTargetScale: 1
 };
 
 function main(){
@@ -57,10 +56,10 @@ function main(){
 		75,                                   // Field of view
 		window.innerWidth / window.innerHeight, // Aspect ratio
 		0.1,                                  // Near clipping pane
-		200                                  // Far clipping pane
+		100                                  // Far clipping pane
 	);
 
-	camera.position.set(3, 1, 0);
+	camera.position.set(3, 3, 0);
 
 	var renderer = new THREE.WebGLRenderer({antialias: true});
 	renderer.setSize(window.innerWidth, window.innerHeight);
@@ -72,8 +71,8 @@ function main(){
 
 	loader.load(london_hall, function ( gltf ) {
 
-		gltf.scene.position.set(-5, 20, -27);
-		gltf.scene.scale.set(5, 5, 5);
+		gltf.scene.position.set(-5, 10, -15);
+		gltf.scene.scale.set(3, 3, 3);
 		scene.add( gltf.scene );
 
 	}, undefined, function ( error ) {
@@ -87,7 +86,7 @@ function main(){
 	var basketBall, basketBall2;
 	loaderSpalding.load(spalding_ball, function ( gltf ) {
 
-		gltf.scene.position.set(-5, 0, 0);
+		gltf.scene.position.set(-9, 0, 0);
 		gltf.scene.scale.set(0.5, 0.5, 0.5);
 
 		basketBall = gltf.scene;
@@ -115,7 +114,10 @@ function main(){
 	antialiasingPass.renderToScreen = true;
 
 	var depthTarget = getRenderTarget();
-	var motionPass = new MotionBlurPass( scene, camera );
+
+	var motionPass = new MotionBlurPass( scene, camera, motionBlurParameters );
+	// motionPass.smearIntensity = motionBlurParameters.smearIntensity;
+	// motionPass.interpolateGeometry = motionBlurParameters.interpolateGeometry;
 
 	const depthShader = {
 		vertexShader: depthVertexShader,
@@ -238,7 +240,6 @@ function main(){
 		this.resetMotionBlurParameters = function(){
 			motionPass.enabled = motionBlurParameters.enabled;
 			motionPass.samples = motionBlurParameters.samples;
-			motionPass.expandGeometry = motionBlurParameters.expandGeometry;
 			motionPass.interpolateGeometry = motionBlurParameters.interpolateGeometry;
 			motionPass.renderCameraBlur = motionBlurParameters.cameraBlur;
 			motionPass.smearIntensity = motionBlurParameters.smearIntensity;
@@ -272,7 +273,6 @@ function main(){
 		motionFolder.add(motionPass, "renderCameraBlur").name("Camera Blur").listen();
 		motionFolder.add(motionPass, "samples", 0, 50).name("Samples").listen();
 		motionFolder.add(motionPass, "smearIntensity", 0, 1).name("Smearing").listen();
-		motionFolder.add(motionPass, "expandGeometry", 0, 1);
 		motionFolder.add(motionPass, "interpolateGeometry", 0, 1).name("InterpolateGeom").listen();
 		motionFolder.add(guiControls, "resetMotionBlurParameters").name("Reset parameters");
 		motionFolder.open();
@@ -321,6 +321,7 @@ function main(){
 		if ( motionBlurParameters.animate || animatedOneFramePast === false) {
 
 			animTime += deltaTime * motionBlurParameters.speed;
+
 			if(basketBall){
 				basketBall.position.y = Math.sin( animTime * 0.25) * 10;
 			}
@@ -328,6 +329,7 @@ function main(){
 				basketBall2.position.y = Math.abs(Math.sin( animTime * 0.25)) * 15;
 				basketBall2.position.x = Math.cos( animTime * 0.1) * 15;
 			}
+
 			animatedOneFramePast = !motionBlurParameters.animate;
 			
 		} else if ( motionBlurParameters.animate ) {
@@ -337,24 +339,24 @@ function main(){
 		switch(guiControls.whichScene){
 			case "Depth":
 				hideGUIFolder(folderDoFParameters, false);
-				depthComposer.render(0.01);
+				depthComposer.render(deltaTime);
 				break;
 			case "CoC":
 				hideGUIFolder(folderDoFParameters, false);
-				CoCComposer.render(0.01);
+				CoCComposer.render(deltaTime);
 				break;
 			case "DoF":
 				hideGUIFolder(folderDoFParameters, true);
 				DoFPass.uniforms.tOriginal.value = depthTarget.texture;
-				DoFComposer.render(0.1);
+				DoFComposer.render(deltaTime);
 				break;
 			case "Geometry":
 				motionPass.debug.display = MotionBlurPass.GEOMETRY;
-				DoFComposer.render(0.1);
+				DoFComposer.render(deltaTime);
 				break;
 			case "Velocity":
 				motionPass.debug.display = MotionBlurPass.VELOCITY;
-				DoFComposer.render(0.1);
+				DoFComposer.render(deltaTime);
 				break;
 		}
 	}
@@ -362,12 +364,17 @@ function main(){
 	document.addEventListener( 'mousemove', onDocumentMouseMove, false );
 
 	var controls = new OrbitControls(camera, renderer.domElement);
-	controls.target = new THREE.Vector3(-3, 1, 0);
+	controls.target = new THREE.Vector3(-10, 4, 0);
 
 	controls.addEventListener('change', function(){
 		whichSceneToRender();
 	});
 
+	controls.maxDistance = 20;
+	controls.maxPolarAngle = 5 / 6 * Math.PI;
+	controls.minPolarAngle = Math.PI / 6;
+	controls.maxAzimuthAngle = 5 / 6 * Math.PI;
+	controls.minAzimuthAngle = Math.PI / 6;
 	controls.update();
 
 	window.addEventListener("resize", _ => {
