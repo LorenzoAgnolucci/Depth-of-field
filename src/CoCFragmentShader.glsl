@@ -1,6 +1,5 @@
 #include <packing>
 
-varying vec2 vUv;
 uniform sampler2D tDiffuse;
 uniform sampler2D tDepth;
 uniform float cameraNear;
@@ -13,11 +12,13 @@ uniform float fstop;        // F-stop value
 uniform bool mouseFocus;
 uniform vec2 mouseCoords;
 
+in vec2 vUv;
+
 float readDepth( sampler2D depthSampler, vec2 coord ) {
     float fragCoordZ = texture2D( depthSampler, coord ).x;
-    // float viewZ = ( cameraNear * cameraFar ) / ( ( cameraFar - cameraNear ) * fragCoordZ - cameraFar );
+    // perspectiveDepthToViewZ -> ( cameraNear * cameraFar ) / ( ( cameraFar - cameraNear ) * fragCoordZ - cameraFar );
     float viewZ = perspectiveDepthToViewZ( fragCoordZ, cameraNear, cameraFar );
-    // return ( viewZ + cameraNear ) / ( cameraNear - cameraFar );
+    // viewZToOrthographicDepth -> ( viewZ + cameraNear ) / ( cameraNear - cameraFar );
     return viewZToOrthographicDepth( viewZ, cameraNear, cameraFar );
 }
 
