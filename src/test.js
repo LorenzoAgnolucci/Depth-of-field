@@ -31,9 +31,9 @@ import {MotionBlurPass} from "three/examples/jsm/postprocessing/MotionBlurPassCu
 var mouse = new THREE.Vector2();
 
 var cameraParameters = {
-	focalDepth : 0.11,
+	focalDepth : 0.15,
 	focalLength : 35,
-	fstop: 2.2
+	fstop: 5.6
 };
 
 var motionBlurParameters = {
@@ -51,6 +51,7 @@ function main(){
 	// Scene
 	
 	var scene = new THREE.Scene();
+	scene.background = new THREE.CubeTextureLoader().load([px, nx, py, ny, pz, nz])
 
 	var camera = new THREE.PerspectiveCamera(
 		75,                                   // Field of view
@@ -87,12 +88,13 @@ function main(){
 	loaderSpalding.load(spalding_ball, function ( gltf ) {
 
 		gltf.scene.position.set(-9, 0, 0);
-		gltf.scene.scale.set(0.5, 0.5, 0.5);
+		gltf.scene.scale.set(0.3, 0.3, 0.3);
 
 		basketBall = gltf.scene;
+		basketBall.rotation.y = Math.PI;
 		scene.add(basketBall)
 		basketBall2 = basketBall.clone();
-		basketBall2.position.set(-10, 0, 35);
+		basketBall2.position.set(6, 0, 25);
 		scene.add(basketBall2)
 
 	}, undefined, function ( error ) {
@@ -316,6 +318,7 @@ function main(){
 		motionPass.debug.display = MotionBlurPass.DEFAULT;
 
 		const deltaTime = clock.getDelta();
+
 		motionPass.debug.dontUpdateState = !motionBlurParameters.animate;
 
 		if ( motionBlurParameters.animate || animatedOneFramePast === false) {
@@ -326,8 +329,8 @@ function main(){
 				basketBall.position.y = Math.sin( animTime * 0.25) * 10;
 			}
 			if(basketBall2){
-				basketBall2.position.y = Math.abs(Math.sin( animTime * 0.25)) * 15;
-				basketBall2.position.x = Math.cos( animTime * 0.1) * 15;
+				basketBall2.position.y = -12.5 + Math.abs(Math.sin( animTime * 0.25)) * 15;
+				basketBall2.position.x = -20 + Math.cos( animTime * 0.1) * 15;
 			}
 
 			animatedOneFramePast = !motionBlurParameters.animate;
@@ -364,17 +367,17 @@ function main(){
 	document.addEventListener( 'mousemove', onDocumentMouseMove, false );
 
 	var controls = new OrbitControls(camera, renderer.domElement);
-	controls.target = new THREE.Vector3(-10, 4, 0);
+	controls.target = new THREE.Vector3(-3, 4, 0);
 
 	controls.addEventListener('change', function(){
 		whichSceneToRender();
 	});
 
-	controls.maxDistance = 20;
-	controls.maxPolarAngle = 5 / 6 * Math.PI;
-	controls.minPolarAngle = Math.PI / 6;
-	controls.maxAzimuthAngle = 5 / 6 * Math.PI;
-	controls.minAzimuthAngle = Math.PI / 6;
+	controls.maxDistance = 9;
+	controls.maxPolarAngle = 3 / 4 * Math.PI;
+	controls.minPolarAngle = Math.PI / 4;
+	controls.maxAzimuthAngle = 3 / 4 * Math.PI;
+	controls.minAzimuthAngle = Math.PI / 4;
 	controls.update();
 
 	window.addEventListener("resize", _ => {
