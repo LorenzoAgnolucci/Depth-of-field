@@ -7,13 +7,11 @@ var MotionBlurPass = function ( scene, camera, options = {} ) {
 
 	options = Object.assign( {
 
-		samples: 15,
-		expandGeometry: 0,
-		interpolateGeometry: 1,
-		smearIntensity: 1,
-		blurTransparent: false,
+		enabled: true,
 		renderCameraBlur: true,
-		renderTargetScale: 1
+		samples: 15,
+		interpolateGeometry: 0.5,
+		smearIntensity: 0.25,
 
 	}, options );
 
@@ -36,17 +34,14 @@ var MotionBlurPass = function ( scene, camera, options = {} ) {
 
 	} );
 
-	this.enabled = true;
 	this.needsSwap = true;
 
 	// settings
+	this.enabled = options.enabled;
 	this.samples = options.samples;
-	this.expandGeometry = options.expandGeometry;
 	this.interpolateGeometry = options.interpolateGeometry;
 	this.smearIntensity = options.smearIntensity;
-	this.blurTransparent = options.blurTransparent;
 	this.renderCameraBlur = options.renderCameraBlur;
-	this.renderTargetScale = options.renderTargetScale;
 
 	this.scene = scene;
 	this.camera = camera;
@@ -71,10 +66,10 @@ var MotionBlurPass = function ( scene, camera, options = {} ) {
 		new THREE.WebGLRenderTarget( 256, 256, {
 			minFilter: THREE.LinearFilter,
 			magFilter: THREE.LinearFilter,
-			format: THREE.RGBFormat,
+			format: THREE.RGBAFormat,
 			type: THREE.HalfFloatType
 		} );
-	this._velocityBuffer.texture.name = "MotionBlurPass.Velocity";
+	// this._velocityBuffer.texture.name = "MotionBlurPass.Velocity";
 	this._velocityBuffer.texture.generateMipmaps = false;
 
 	this._prevCamProjection = new THREE.Matrix4();
@@ -106,7 +101,7 @@ MotionBlurPass.prototype = Object.assign( Object.create( Pass.prototype ), {
 
 	setSize: function ( width, height ) {
 
-		this._velocityBuffer.setSize( width * this.renderTargetScale, height * this.renderTargetScale );
+		this._velocityBuffer.setSize( width, height );
 
 	},
 
@@ -148,7 +143,6 @@ MotionBlurPass.prototype = Object.assign( Object.create( Pass.prototype ), {
 
 		}
 
-		// TODO: This is getting called just to set 'currentRenderState' in the renderer
 		renderer.compile( this.scene, this.camera );
 
 		// If we're rendering the blurred view, then we need to render
@@ -165,13 +159,20 @@ MotionBlurPass.prototype = Object.assign( Object.create( Pass.prototype ), {
 
 		// reinitialize the camera matrices to the current pos because if
 		// the pass has been disabeled then the matrices will be out of date
-		if ( this._cameraMatricesNeedInitializing ) {
 
-			this._prevCamWorldInverse.copy( this.camera.matrixWorldInverse );
-			this._prevCamProjection.copy( this.camera.projectionMatrix );
-			this._cameraMatricesNeedInitializing = false;
+		/*
+				if ( this._cameraMatricesNeedInitializing ) {
 
-		}
+					this._prevCamWorldInverse.copy( this.camera.matrixWorldInverse );
+					this._prevCamProjection.copy( this.camera.projectionMatrix );
+					this._cameraMatricesNeedInitializing = false;
+
+				}
+
+
+		 */
+
+
 
 		this._projScreenMatrix.multiplyMatrices( this.camera.projectionMatrix, this.camera.matrixWorldInverse );
 		this._frustum.setFromProjectionMatrix( this._projScreenMatrix );
@@ -180,8 +181,8 @@ MotionBlurPass.prototype = Object.assign( Object.create( Pass.prototype ), {
 
 		// replace the old map with a new one storing only
 		// the most recently traversed meshes
-		this._prevPosMap.clear();
-		this._prevPosMap = newMap;
+		// this._prevPosMap.clear();
+		// this._prevPosMap = newMap;
 
 		this._prevCamWorldInverse.copy( this.camera.matrixWorldInverse );
 		this._prevCamProjection.copy( this.camera.projectionMatrix );
@@ -230,8 +231,6 @@ MotionBlurPass.prototype = Object.assign( Object.create( Pass.prototype ), {
 
 		}
 
-
-
 		return data;
 
 	},
@@ -246,24 +245,20 @@ MotionBlurPass.prototype = Object.assign( Object.create( Pass.prototype ), {
 
 	_drawMesh( renderer, obj ) {
 
-		var blurTransparent = this.blurTransparent;
 		var renderCameraBlur = this.renderCameraBlur;
-		var expandGeometry = this.expandGeometry;
 		var interpolateGeometry = this.interpolateGeometry;
 		var smearIntensity = this.smearIntensity;
 		var overrides = obj.motionBlur;
 		if ( overrides ) {
 
-			if ( 'blurTransparent' in overrides ) blurTransparent = overrides.blurTransparent;
 			if ( 'renderCameraBlur' in overrides ) renderCameraBlur = overrides.renderCameraBlur;
-			if ( 'expandGeometry' in overrides ) expandGeometry = overrides.expandGeometry;
 			if ( 'interpolateGeometry' in overrides ) interpolateGeometry = overrides.interpolateGeometry;
 			if ( 'smearIntensity' in overrides ) smearIntensity = overrides.smearIntensity;
 
 		}
 
-		var skip = blurTransparent === false && ( obj.material.transparent || obj.material.alpha < 1 );
-		skip = skip || obj.frustumCulled && ! this._frustum.intersectsObject( obj );
+
+		var skip = ( obj.material.transparent || obj.material.alpha < 1 ) || obj.frustumCulled && ! this._frustum.intersectsObject( obj )
 		if ( skip ) {
 
 			if ( this._prevPosMap.has( obj ) && this.debug.dontUpdateState === false ) {
@@ -275,9 +270,9 @@ MotionBlurPass.prototype = Object.assign( Object.create( Pass.prototype ), {
 
 		}
 
+
 		var data = this._getMaterialState( obj );
 		var mat = this.debug.display === MotionBlurPass.GEOMETRY ? data.geometryMaterial : data.velocityMaterial;
-		mat.uniforms.expandGeometry.value = expandGeometry;
 		mat.uniforms.interpolateGeometry.value = Math.min( 1, Math.max( 0, interpolateGeometry ) );
 		mat.uniforms.smearIntensity.value = smearIntensity;
 
@@ -339,7 +334,6 @@ MotionBlurPass.prototype = Object.assign( Object.create( Pass.prototype ), {
 				prevProjectionMatrix: { value: new THREE.Matrix4() },
 				prevModelViewMatrix: { value: new THREE.Matrix4() },
 				prevBoneTexture: { value: null },
-				expandGeometry: { value: 0 },
 				interpolateGeometry: { value: 1 },
 				smearIntensity: { value: 1 }
 			},
@@ -348,7 +342,6 @@ MotionBlurPass.prototype = Object.assign( Object.create( Pass.prototype ), {
 				`
 				uniform mat4 prevProjectionMatrix;
 				uniform mat4 prevModelViewMatrix;
-				uniform float expandGeometry;
 				uniform float interpolateGeometry;
 				varying vec4 prevPosition;
 				varying vec4 newPosition;
@@ -378,7 +371,6 @@ MotionBlurPass.prototype = Object.assign( Object.create( Pass.prototype ), {
 				prevProjectionMatrix: { value: new THREE.Matrix4() },
 				prevModelViewMatrix: { value: new THREE.Matrix4() },
 				prevBoneTexture: { value: null },
-				expandGeometry: { value: 0 },
 				interpolateGeometry: { value: 1 },
 				smearIntensity: { value: 1 }
 			},
@@ -387,7 +379,6 @@ MotionBlurPass.prototype = Object.assign( Object.create( Pass.prototype ), {
 				`
 				uniform mat4 prevProjectionMatrix;
 				uniform mat4 prevModelViewMatrix;
-				uniform float expandGeometry;
 				uniform float interpolateGeometry;
 				varying vec4 prevPosition;
 				varying vec4 newPosition;
