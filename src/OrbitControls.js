@@ -24,8 +24,8 @@ import {
 //    Zoom - middle mouse, or mousewheel / touch: two-finger spread or squish
 //    Pan - right mouse, or left mouse + ctrl/meta/shiftKey, or arrow keys / touch: two-finger move
 
-var minPan = new Vector3(-5, -5, -5);
-var maxPan = new Vector3(5, 5, 5);
+var minPan = new Vector3(-1, -1, -1);
+var maxPan = new Vector3(5, 5, 15);
 
 var OrbitControls = function ( object, domElement ) {
 
