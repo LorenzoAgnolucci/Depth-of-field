@@ -1,0 +1,13 @@
+image: alpine:latest
+
+pages:
+  stage: deploy
+  script:
+    - apk add npm nodejs python3
+    - npm install
+    - WEBPACK_PUBLIC_PATH="public" npm run build-prod
+  artifacts:
+    paths:
+      - public
+  only:
+    - master
