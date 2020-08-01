@@ -1,11 +1,8 @@
 import * as THREE from 'three';
-// import {OrbitControls} from "three/examples/jsm/controls/OrbitControls";
 import {OrbitControls} from "./OrbitControls";
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-// import tesla from "../models/tesla_model_s/scene.gltf"
 import london_hall from "../models/hintze_hall_nhm_london_surface_model/scene.gltf"
 import spalding_ball from "../models/spalding_basket_ball/scene.gltf"
-import basket_bullet_ball from "../models/basket_bullet_10_lb/scene.gltf"
 import {GUI} from "three/examples/jsm/libs/dat.gui.module.js";
 import px from "../models/background/cube/px.png"
 import nx from "../models/background/cube/nx.png"
@@ -14,7 +11,7 @@ import ny from "../models/background/cube/ny.png"
 import pz from "../models/background/cube/pz.png"
 import nz from "../models/background/cube/nz.png"
 import Stats from "three/examples/jsm/libs/stats.module"
-import depthVertexShader from "./DepthVertexShader.glsl"
+import basicVertexShader from "./BasicVertexShader.glsl"
 import depthFragmentShader from "./DepthFragmentShader.glsl"
 import cocFragmentShader from "./CoCFragmentShader.glsl"
 import blurFragmentShader from "./BlurFragmentShader.glsl"
@@ -87,7 +84,7 @@ function main(){
 	var basketBall, basketBall2;
 	loaderSpalding.load(spalding_ball, function ( gltf ) {
 
-		gltf.scene.position.set(-9, 0, 0);
+		gltf.scene.position.set(-9, -10, 0);
 		gltf.scene.scale.set(0.3, 0.3, 0.3);
 
 		basketBall = gltf.scene;
@@ -118,16 +115,13 @@ function main(){
 	var depthTarget = getRenderTarget();
 
 	var motionPass = new MotionBlurPass( scene, camera, motionBlurParameters );
-	// motionPass.smearIntensity = motionBlurParameters.smearIntensity;
-	// motionPass.interpolateGeometry = motionBlurParameters.interpolateGeometry;
 
 	const depthShader = {
-		vertexShader: depthVertexShader,
+		vertexShader: basicVertexShader,
 		fragmentShader: depthFragmentShader,
 		uniforms: {
 			cameraNear: { value: camera.near },
 			cameraFar: { value: camera.far },
-			tDiffuse: { value: null },
 			tDepth: { value: null }
 		}
 	};
@@ -135,15 +129,12 @@ function main(){
 	var depthComposer = new EffectComposer(renderer);
 	var depthPass = new ShaderPass(depthShader);
 	depthComposer.addPass(depthPass);
-
-
 	depthComposer.addPass(motionPass)
-
 	depthComposer.addPass(antialiasingPass);
 
 
 	const CoCShader = {
-		vertexShader: depthVertexShader,
+		vertexShader: basicVertexShader,
 		fragmentShader: cocFragmentShader,
 		uniforms: {
 			cameraNear: { value: camera.near },
@@ -161,54 +152,40 @@ function main(){
 	var CoCComposer = new EffectComposer(renderer);
 	var CoCPass = new ShaderPass(CoCShader);
 	CoCComposer.addPass(CoCPass);
-
 	CoCComposer.addPass(motionPass);
-
 	CoCComposer.addPass(antialiasingPass);
 
+
 	const horizontalBlurShader = {
-		vertexShader: depthVertexShader,
+		vertexShader: basicVertexShader,
 		fragmentShader: blurFragmentShader,
 		uniforms: {
-			cameraNear: {value: camera.near},
-			cameraFar: {value: camera.far},
 			tDiffuse: {value: null},
-			tDepth: {value: null},
-			focalDepth: {value: cameraParameters.focalDepth},
-			focalLength: {value: cameraParameters.focalLength},
-			fstop: {value: cameraParameters.fstop},
-			widthTexel: {value: 1.0 / window.innerHeight.toFixed(1)},
-			heightTexel: {value: 1.0 / window.innerWidth.toFixed(1)},
+			widthTexel: {value: 1.0 / window.innerWidth.toFixed(1)},
+			heightTexel: {value: 1.0 / window.innerHeight.toFixed(1)},
 			horizontalBlur: {value: true}
 		}
 	}
 
 	const verticalBlurShader = {
-		vertexShader: depthVertexShader,
+		vertexShader: basicVertexShader,
 		fragmentShader: blurFragmentShader,
 		uniforms: {
-			cameraNear: {value: camera.near},
-			cameraFar: {value: camera.far},
 			tDiffuse: {value: null},
-			tDepth: {value: null},
-			focalDepth: {value: cameraParameters.focalDepth},
-			focalLength: {value: cameraParameters.focalLength},
-			fstop: {value: cameraParameters.fstop},
-			widthTexel: {value: 1.0 / window.innerHeight.toFixed(1)},
-			heightTexel: {value: 1.0 / window.innerWidth.toFixed(1)},
+			widthTexel: {value: 1.0 / window.innerWidth.toFixed(1)},
+			heightTexel: {value: 1.0 / window.innerHeight.toFixed(1)},
 			horizontalBlur: {value: false}
 		}
 	}
 
 	const DoFShader = {
-		vertexShader: depthVertexShader,
+		vertexShader: basicVertexShader,
 		fragmentShader: DoFFragmentShader,
 		uniforms: {
 			tDiffuse: {value: null},
-			tDepth: {value: null},
 			tOriginal: {value: null},
-			texelHeight: {value: 1.0 / window.innerHeight.toFixed(1)},
-			texelWidth: {value: 1.0 / window.innerWidth.toFixed(1)},
+			heightTexel: {value: 1.0 / window.innerHeight.toFixed(1)},
+			widthTexel: {value: 1.0 / window.innerWidth.toFixed(1)},
 			bokehBlurSize: {value: 3.0},
 			dofEnabled: {value: true},
 			showFocus: {value: false}
@@ -220,7 +197,6 @@ function main(){
 	var verticalBlurPass = new ShaderPass(verticalBlurShader);
 	DoFComposer.addPass(verticalBlurPass);
 	var horizontalBlurPass = new ShaderPass(horizontalBlurShader);
-	horizontalBlurPass.renderToScreen = false;
 	DoFComposer.addPass(horizontalBlurPass);
 	var DoFPass = new ShaderPass(DoFShader);
 	DoFComposer.addPass(DoFPass);
@@ -308,7 +284,6 @@ function main(){
 	var animatedOneFramePast = false;
 	function whichSceneToRender(){
 
-		depthPass.uniforms.tDiffuse.value = depthTarget.texture;
 		depthPass.uniforms.tDepth.value = depthTarget.depthTexture;
 
 		CoCPass.uniforms.tDiffuse.value = depthTarget.texture;
@@ -326,7 +301,7 @@ function main(){
 			animTime += deltaTime * motionBlurParameters.speed;
 
 			if(basketBall){
-				basketBall.position.y = Math.sin( animTime * 0.25) * 10;
+				basketBall.position.x = Math.sin( animTime * 0.25) * 10;
 			}
 			if(basketBall2){
 				basketBall2.position.y = -12.5 + Math.abs(Math.sin( animTime * 0.25)) * 15;
