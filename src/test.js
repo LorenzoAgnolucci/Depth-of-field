@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import {OrbitControls} from "./OrbitControls";
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader.js';
 import london_hall from "../models/hintze_hall_nhm_london_surface_model/scene.gltf"
 import spalding_ball from "../models/spalding_basket_ball/scene.gltf"
 import {GUI} from "three/examples/jsm/libs/dat.gui.module.js";
@@ -16,24 +16,22 @@ import depthFragmentShader from "./DepthFragmentShader.glsl"
 import cocFragmentShader from "./CoCFragmentShader.glsl"
 import blurFragmentShader from "./BlurFragmentShader.glsl"
 import DoFFragmentShader from "./DoFFragmentShader.glsl"
-import {Scene} from "three";
 import {EffectComposer} from "three/examples/jsm/postprocessing/EffectComposer";
-import {RenderPass} from "three/examples/jsm/postprocessing/RenderPass";
 import {ShaderPass} from "three/examples/jsm/postprocessing/ShaderPass";
 import {FXAAShader} from "three/examples/jsm/shaders/FXAAShader";
 import {MotionBlurPass} from "three/examples/jsm/postprocessing/MotionBlurPassCustom";
 
 
 
-var mouse = new THREE.Vector2();
+const mouse = new THREE.Vector2();
 
-var cameraParameters = {
+const cameraParameters = {
 	focalDepth : 0.15,
 	focalLength : 35,
 	fstop: 5.6
 };
 
-var motionBlurParameters = {
+const motionBlurParameters = {
 	enabled: true,
 	cameraBlur: true,
 	animate: true,
@@ -44,13 +42,15 @@ var motionBlurParameters = {
 };
 
 function main(){
-	
-	// Scene
-	
-	var scene = new THREE.Scene();
+
+	///////////////////////
+	//////// Scene ////////
+	///////////////////////
+
+	const scene = new THREE.Scene();
 	scene.background = new THREE.CubeTextureLoader().load([px, nx, py, ny, pz, nz])
 
-	var camera = new THREE.PerspectiveCamera(
+	const camera = new THREE.PerspectiveCamera(
 		75,                                   // Field of view
 		window.innerWidth / window.innerHeight, // Aspect ratio
 		0.1,                                  // Near clipping pane
@@ -59,29 +59,27 @@ function main(){
 
 	camera.position.set(3, 3, 0);
 
-	var renderer = new THREE.WebGLRenderer({antialias: true});
+	const renderer = new THREE.WebGLRenderer({antialias: true});
 	renderer.setSize(window.innerWidth, window.innerHeight);
 	renderer.setClearColor(0xeeeeee);
 	renderer.setPixelRatio( window.devicePixelRatio);
 	document.body.appendChild(renderer.domElement);
 
-	var loader = new GLTFLoader();
+	const loaderLondonHall = new GLTFLoader();
 
-	loader.load(london_hall, function ( gltf ) {
+	loaderLondonHall.load(london_hall, function ( gltf ) {
 
 		gltf.scene.position.set(-5, 10, -15);
 		gltf.scene.scale.set(3, 3, 3);
 		scene.add( gltf.scene );
 
 	}, undefined, function ( error ) {
-
 		console.error( error );
-
 	} );
 
-	var loaderSpalding = new GLTFLoader();
+	const loaderSpalding = new GLTFLoader();
 
-	var basketBall, basketBall2;
+	let basketBall, basketBall2;
 	loaderSpalding.load(spalding_ball, function ( gltf ) {
 
 		gltf.scene.position.set(-9, -10, 0);
@@ -95,26 +93,26 @@ function main(){
 		scene.add(basketBall2)
 
 	}, undefined, function ( error ) {
-
 		console.error( error );
-
 	} );
 
-	var light = new THREE.AmbientLight("#c9c7c7", 1); // soft white light
+	const light = new THREE.AmbientLight("#c9c7c7", 1); // soft white light
 	scene.add(light);
 
-	var directionalLight = new THREE.DirectionalLight("#c9c7c7", 2);
+	const directionalLight = new THREE.DirectionalLight("#c9c7c7", 2);
 	scene.add(directionalLight);
 
-	// Effect composer
+	///////////////////////
+	/// Effect composer ///
+	///////////////////////
 
-	var antialiasingPass = new ShaderPass( FXAAShader );
+	const antialiasingPass = new ShaderPass( FXAAShader );
 	antialiasingPass.uniforms[ 'resolution' ].value.set( 1 / window.innerWidth, 1 / window.innerHeight );
 	antialiasingPass.renderToScreen = true;
 
-	var depthTarget = getRenderTarget();
+	const depthTarget = getRenderTarget();
 
-	var motionPass = new MotionBlurPass( scene, camera, motionBlurParameters );
+	const motionPass = new MotionBlurPass( scene, camera, motionBlurParameters );
 
 	const depthShader = {
 		vertexShader: basicVertexShader,
@@ -126,8 +124,8 @@ function main(){
 		}
 	};
 
-	var depthComposer = new EffectComposer(renderer);
-	var depthPass = new ShaderPass(depthShader);
+	const depthComposer = new EffectComposer(renderer);
+	const depthPass = new ShaderPass(depthShader);
 	depthComposer.addPass(depthPass);
 	depthComposer.addPass(motionPass)
 	depthComposer.addPass(antialiasingPass);
@@ -149,8 +147,8 @@ function main(){
 		}
 	};
 
-	var CoCComposer = new EffectComposer(renderer);
-	var CoCPass = new ShaderPass(CoCShader);
+	const CoCComposer = new EffectComposer(renderer);
+	const CoCPass = new ShaderPass(CoCShader);
 	CoCComposer.addPass(CoCPass);
 	CoCComposer.addPass(motionPass);
 	CoCComposer.addPass(antialiasingPass);
@@ -192,23 +190,25 @@ function main(){
 		}
 	};
 
-	var DoFComposer = new EffectComposer(renderer);
+	const DoFComposer = new EffectComposer(renderer);
 	DoFComposer.addPass(CoCPass);
-	var verticalBlurPass = new ShaderPass(verticalBlurShader);
+	const verticalBlurPass = new ShaderPass(verticalBlurShader);
 	DoFComposer.addPass(verticalBlurPass);
-	var horizontalBlurPass = new ShaderPass(horizontalBlurShader);
+	const horizontalBlurPass = new ShaderPass(horizontalBlurShader);
 	DoFComposer.addPass(horizontalBlurPass);
-	var DoFPass = new ShaderPass(DoFShader);
+	const DoFPass = new ShaderPass(DoFShader);
 	DoFComposer.addPass(DoFPass);
 	DoFComposer.addPass(motionPass);
 	DoFComposer.addPass(antialiasingPass);
 
-	// GUI
-	
-	var gui = new GUI();
+	///////////////////////
+	///////// GUI /////////
+	///////////////////////
+
+	const gui = new GUI();
 	gui.width = 250;
 
-	var guiControls = new function(){
+	const guiControls = new function(){
 		this.whichScene = "DoF";
 		this.resetCameraParameters = function(){
 			CoCPass.uniforms.focalDepth.value = cameraParameters.focalDepth;
@@ -237,16 +237,15 @@ function main(){
 		cameraParametersFolder.add(guiControls, "resetCameraParameters").name("Reset parameters");
 		cameraParametersFolder.open();
 	}
-
 	{
+		// Defined as var because is passed to hideGUIFolder()
 		var folderDoFParameters = gui.addFolder("DoF parameters")
 		folderDoFParameters.add(DoFPass.uniforms.dofEnabled, "value").name("DoF enabled").listen();
 		folderDoFParameters.add(DoFPass.uniforms.showFocus, "value").name("Show focus").listen();
 		folderDoFParameters.open();
 	}
-
 	{
-		var motionFolder = gui.addFolder("Motion blur");
+		const motionFolder = gui.addFolder("Motion blur");
 		motionFolder.add(motionPass, "enabled").name("Motion blur enabled").listen();
 		motionFolder.add(motionPass, "renderCameraBlur").name("Camera Blur").listen();
 		motionFolder.add(motionPass, "samples", 0, 50).name("Samples").listen();
@@ -255,21 +254,23 @@ function main(){
 		motionFolder.add(guiControls, "resetMotionBlurParameters").name("Reset parameters");
 		motionFolder.open();
 	}
-
 	{
-		var animFolder = gui.addFolder('Animation');
+		const animFolder = gui.addFolder('Animation');
 		animFolder.add(motionBlurParameters, 'animate').name("Animate").listen();
 		animFolder.add(motionBlurParameters, 'speed', 0, 10).name("Speed").listen();
 		animFolder.open();
 	}
-	
-	// Render
 
-	var stats = new Stats();
+	///////////////////////
+	/////// Render ////////
+	///////////////////////
+
+	const stats = new Stats();
 	document.body.appendChild(stats.dom);
 
-	var clock = new THREE.Clock();
-	var animTime = 0.0;
+	const clock = new THREE.Clock();
+	let animTime = 0.0;
+	let animatedOneFramePast = false;
 
 	animate();
 
@@ -281,7 +282,6 @@ function main(){
 		requestAnimationFrame(animate);
 	}
 	
-	var animatedOneFramePast = false;
 	function whichSceneToRender(){
 
 		depthPass.uniforms.tDepth.value = depthTarget.depthTexture;
@@ -301,13 +301,12 @@ function main(){
 			animTime += deltaTime * motionBlurParameters.speed;
 
 			if(basketBall){
-				basketBall.position.x = Math.sin( animTime * 0.25) * 10;
+				basketBall.position.y = Math.sin( animTime * 0.25) * 10;
 			}
 			if(basketBall2){
 				basketBall2.position.y = -12.5 + Math.abs(Math.sin( animTime * 0.25)) * 15;
 				basketBall2.position.x = -20 + Math.cos( animTime * 0.1) * 15;
 			}
-
 			animatedOneFramePast = !motionBlurParameters.animate;
 			
 		} else if ( motionBlurParameters.animate ) {
@@ -317,43 +316,53 @@ function main(){
 		switch(guiControls.whichScene){
 			case "Depth":
 				hideGUIFolder(folderDoFParameters, false);
-				depthComposer.render(deltaTime);
+				depthComposer.render();
 				break;
 			case "CoC":
 				hideGUIFolder(folderDoFParameters, false);
-				CoCComposer.render(deltaTime);
+				CoCComposer.render();
 				break;
 			case "DoF":
 				hideGUIFolder(folderDoFParameters, true);
 				DoFPass.uniforms.tOriginal.value = depthTarget.texture;
-				DoFComposer.render(deltaTime);
+				DoFComposer.render();
 				break;
 			case "Geometry":
+				hideGUIFolder(folderDoFParameters, false);
 				motionPass.debug.display = MotionBlurPass.GEOMETRY;
-				DoFComposer.render(deltaTime);
+				DoFComposer.render();
 				break;
 			case "Velocity":
+				hideGUIFolder(folderDoFParameters, false);
 				motionPass.debug.display = MotionBlurPass.VELOCITY;
-				DoFComposer.render(deltaTime);
+				DoFComposer.render();
 				break;
 		}
 	}
 
 	document.addEventListener( 'mousemove', onDocumentMouseMove, false );
 
-	var controls = new OrbitControls(camera, renderer.domElement);
-	controls.target = new THREE.Vector3(-3, 4, 0);
+	function onDocumentMouseMove( event ) {
+		event.preventDefault();
+		mouse.x = ((event.clientX - 8.0) / window.innerWidth); // Subtract 8 pixels for the white bezel on the left of the canvas
+		mouse.y = 1.0 - ((event.clientY) / window.innerHeight);
+	}
 
-	controls.addEventListener('change', function(){
-		whichSceneToRender();
-	});
+	{
+		let controls = new OrbitControls(camera, renderer.domElement);
+		controls.target = new THREE.Vector3(-3, 4, 0);
 
-	controls.maxDistance = 9;
-	controls.maxPolarAngle = 3 / 4 * Math.PI;
-	controls.minPolarAngle = Math.PI / 4;
-	controls.maxAzimuthAngle = 3 / 4 * Math.PI;
-	controls.minAzimuthAngle = Math.PI / 4;
-	controls.update();
+		controls.addEventListener('change', function(){
+			whichSceneToRender();
+		});
+
+		controls.maxDistance = 9;
+		controls.maxPolarAngle = 3 / 4 * Math.PI;
+		controls.minPolarAngle = Math.PI / 4;
+		controls.maxAzimuthAngle = 3 / 4 * Math.PI;
+		controls.minAzimuthAngle = Math.PI / 4;
+		controls.update();
+	}
 
 	window.addEventListener("resize", _ => {
 		renderer.setSize(window.innerWidth, window.innerHeight);
@@ -362,11 +371,6 @@ function main(){
 		antialiasingPass.uniforms[ 'resolution' ].value.set( 1 / window.innerWidth, 1 / window.innerHeight );
 	})
 
-	function onDocumentMouseMove( event ) {
-		event.preventDefault();
-		mouse.x = ((event.clientX - 8.0) / window.innerWidth); // Subtract 8 pixels for the white bezel on the left of the canvas
-		mouse.y = 1.0 - ((event.clientY) / window.innerHeight);
-	}
 }
 
 function hideGUIFolder(folder, isShown){
