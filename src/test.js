@@ -22,7 +22,6 @@ import {FXAAShader} from "three/examples/jsm/shaders/FXAAShader";
 import {MotionBlurPass} from "three/examples/jsm/postprocessing/MotionBlurPassCustom";
 
 
-
 const mouse = new THREE.Vector2();
 
 const cameraParameters = {
@@ -87,10 +86,10 @@ function main(){
 
 		basketBall = gltf.scene;
 		basketBall.rotation.y = Math.PI;
-		scene.add(basketBall)
+		scene.add(basketBall);
 		basketBall2 = basketBall.clone();
 		basketBall2.position.set(6, 0, 25);
-		scene.add(basketBall2)
+		scene.add(basketBall2);
 
 	}, undefined, function ( error ) {
 		console.error( error );
@@ -270,7 +269,6 @@ function main(){
 
 	const clock = new THREE.Clock();
 	let animTime = 0.0;
-	let animatedOneFramePast = false;
 
 	animate();
 
@@ -296,7 +294,7 @@ function main(){
 
 		motionPass.debug.dontUpdateState = !motionBlurParameters.animate;
 
-		if ( motionBlurParameters.animate || animatedOneFramePast === false) {
+		if ( motionBlurParameters.animate){
 
 			animTime += deltaTime * motionBlurParameters.speed;
 
@@ -307,10 +305,6 @@ function main(){
 				basketBall2.position.y = -12.5 + Math.abs(Math.sin( animTime * 0.25)) * 15;
 				basketBall2.position.x = -20 + Math.cos( animTime * 0.1) * 15;
 			}
-			animatedOneFramePast = !motionBlurParameters.animate;
-			
-		} else if ( motionBlurParameters.animate ) {
-			animatedOneFramePast = false;
 		}
 
 		switch(guiControls.whichScene){
