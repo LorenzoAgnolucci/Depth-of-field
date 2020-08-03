@@ -10,7 +10,7 @@ module.exports = (env, argv) => {
   const devMode = argv.mode !== "production";
 
   return ({
-    entry: './src/test.js',
+    entry: './src/index.js',
     output: {
       path: path.resolve(__dirname, process.env.WEBPACK_PUBLIC_PATH || 'dist'),
       filename: 'bundle.js'
