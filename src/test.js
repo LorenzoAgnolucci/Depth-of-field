@@ -44,12 +44,11 @@ const motionBlurParameters = {
 
 function main(){
 
-	///////////////////////
-	//////// Scene ////////
-	///////////////////////
-
-	const scene = new THREE.Scene();
-	scene.background = new THREE.CubeTextureLoader().load([px, nx, py, ny, pz, nz])
+	const renderer = new THREE.WebGLRenderer({antialias: true});
+	renderer.setSize(window.innerWidth, window.innerHeight);
+	renderer.setClearColor("#ffffff");
+	renderer.setPixelRatio( window.devicePixelRatio);
+	document.body.appendChild(renderer.domElement);
 
 	const camera = new THREE.PerspectiveCamera(
 		75,                                   // Field of view
@@ -60,21 +59,80 @@ function main(){
 
 	camera.position.set(3, 3, 0);
 
-	const renderer = new THREE.WebGLRenderer({antialias: true});
-	renderer.setSize(window.innerWidth, window.innerHeight);
-	renderer.setClearColor(0xeeeeee);
-	renderer.setPixelRatio( window.devicePixelRatio);
-	document.body.appendChild(renderer.domElement);
+	let controls = new OrbitControls(camera, renderer.domElement);
+	controls.target = new THREE.Vector3(-2.5, 3, 0);
+	controls.enabled = false;
+
+	///////////////////////
+	//// Loading scene ////
+	///////////////////////
+
+	const loadingScene = new THREE.Scene();
+	let loadingPlaneGeometry = new THREE.PlaneGeometry(10, 10);
+	let loadingPlaneMaterial = new THREE.MeshBasicMaterial({color: "#000000", side: THREE.DoubleSide});
+	let loadingPlane = new THREE.Mesh(loadingPlaneGeometry, loadingPlaneMaterial);
+	loadingPlane.rotateY(Math.PI/2);
+	loadingPlane.position.set(3, 3, 0.35);
+	loadingScene.add(loadingPlane);
+
+	const textureLoader = new THREE.TextureLoader();
+	let gear;
+	textureLoader.load(gearImage, function(gearTexture){
+		let gearGeometry = new THREE.PlaneGeometry(0.5, 0.5);
+		let gearMaterial = new THREE.MeshBasicMaterial({color: "#ffffff", map: gearTexture});
+		gear = new THREE.Mesh(gearGeometry, gearMaterial);
+		gear.position.set(1.15, 0, 0.1);
+		loadingPlane.add(gear);
+	});
+
+	const fontLoader = new THREE.FontLoader();
+	fontLoader.load(optimerRegular, function(font){
+		var textGeometry = new THREE.TextGeometry('Loading scene', {
+			font,
+			size: 0.2,
+			height: 0.002,
+		});
+		let textMesh = new THREE.Mesh(textGeometry, new THREE.MeshBasicMaterial({color: "#f5f5f5"}));
+		loadingPlane.add(textMesh);
+		textMesh.geometry.center();
+	});
+
+	let handle;
+	function loadingAnimate(){
+		loadingRender();
+		handle = requestAnimationFrame(loadingAnimate);
+	}
+
+	function loadingRender(){
+		if(gear){
+			gear.rotation.z -= 0.05;
+		}
+		renderer.render(loadingScene, camera);
+	}
+
+	///////////////////////
+	//////// Scene ////////
+	///////////////////////
+
+	const scene = new THREE.Scene();
+	scene.background = new THREE.CubeTextureLoader().load([px, nx, py, ny, pz, nz]);
 
 	const loaderLondonHall = new GLTFLoader();
 
 	loaderLondonHall.load(london_hall, function ( gltf ) {
-
 		gltf.scene.position.set(-5, 10, -15);
 		gltf.scene.scale.set(3, 3, 3);
-		scene.add( gltf.scene );
+		scene.add(gltf.scene);
 
-	}, undefined, function ( error ) {
+		// Render actual scene when loading is complete
+		animate();
+		controls.target = new THREE.Vector3(-3, 4, 0);
+		controls.enabled = true;
+		cancelAnimationFrame(handle);
+		GUI.toggleHide();
+	}, function(){
+		loadingAnimate();
+	}, function ( error ) {
 		console.error( error );
 	} );
 
@@ -207,6 +265,7 @@ function main(){
 	///////////////////////
 
 	const gui = new GUI();
+	GUI.toggleHide();
 	gui.width = 250;
 
 	const guiControls = new function(){
@@ -249,9 +308,9 @@ function main(){
 		const motionFolder = gui.addFolder("Motion blur");
 		motionFolder.add(motionPass, "enabled").name("Motion blur enabled").listen();
 		motionFolder.add(motionPass, "renderCameraBlur").name("Camera Blur").listen();
-		motionFolder.add(motionPass, "samples", 0, 50).name("Samples").listen();
-		motionFolder.add(motionPass, "smearIntensity", 0, 1).name("Smearing").listen();
-		motionFolder.add(motionPass, "interpolateGeometry", 0, 1).name("InterpolateGeom").listen();
+		motionFolder.add(motionPass, "samples", 1, 30).name("Samples").step(1).listen();
+		motionFolder.add(motionPass, "smearIntensity", 0, 1).name("Smearing").step(0.01).listen();
+		motionFolder.add(motionPass, "interpolateGeometry", 0, 1).name("InterpolateGeom").step(0.01).listen();
 		motionFolder.add(guiControls, "resetMotionBlurParameters").name("Reset parameters");
 		motionFolder.open();
 	}
@@ -272,7 +331,7 @@ function main(){
 	const clock = new THREE.Clock();
 	let animTime = 0.0;
 
-	animate();
+	// animate();
 
 	function animate(){
 		renderer.setRenderTarget(depthTarget);
@@ -345,9 +404,6 @@ function main(){
 	}
 
 	{
-		let controls = new OrbitControls(camera, renderer.domElement);
-		controls.target = new THREE.Vector3(-3, 4, 0);
-
 		controls.addEventListener('change', function(){
 			whichSceneToRender();
 		});
