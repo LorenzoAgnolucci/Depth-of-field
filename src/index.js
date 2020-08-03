@@ -360,7 +360,7 @@ function main(){
 			animTime += deltaTime * motionBlurParameters.speed;
 
 			if(basketBall){
-				basketBall.position.y = Math.sin( animTime * 0.25) * 10;
+				basketBall.position.y = -2.9 + Math.sin( animTime * 0.25) * 10;
 			}
 			if(basketBall2){
 				basketBall2.position.y = -12.5 + Math.abs(Math.sin( animTime * 0.25)) * 15;
