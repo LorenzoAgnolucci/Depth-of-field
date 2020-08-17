@@ -355,8 +355,7 @@ MotionBlurPass.prototype = Object.assign( Object.create( Pass.prototype ), {
 				varying vec4 prevPosition;
 				varying vec4 newPosition;
 				void main() {
-					vec3 vel;
-					vel = (newPosition.xyz / newPosition.w) - (prevPosition.xyz / prevPosition.w);
+					vec3 vel =  (newPosition.xyz / newPosition.w) - (prevPosition.xyz / prevPosition.w); 
 					gl_FragColor = vec4(vel * smearIntensity, 1.0);
 				}`
 		} );
@@ -429,19 +428,17 @@ MotionBlurPass.prototype = Object.assign( Object.create( Pass.prototype ), {
 				void main() {
 					vec2 vel = texture2D(velocityBuffer, vUv).xy;
 					vec4 result = texture2D(sourceBuffer, vUv);
-					for(int i = 1; i <= SAMPLES; i++) {
+					for(int i = 1; i < SAMPLES; i++) {
 						vec2 offset = vel * (float(i - 1) / float(SAMPLES) - 0.5);
 						result += texture2D(sourceBuffer, vUv + offset);
 					}
-					result /= float(SAMPLES + 1);
+					result /= float(SAMPLES);
+										
 					gl_FragColor = result;
 				}
 				`
-
 		} );
-
 	}
-
 } );
 
 MotionBlurPass.DEFAULT = 0;
