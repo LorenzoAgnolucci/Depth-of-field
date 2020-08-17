@@ -169,9 +169,9 @@ function main(){
 	antialiasingPass.uniforms[ 'resolution' ].value.set( 1 / window.innerWidth, 1 / window.innerHeight );
 	antialiasingPass.renderToScreen = true;
 
-	const depthTarget = getRenderTarget();
+	const basicTarget = getRenderTarget();
 
-	const motionPass = new MotionBlurPass( scene, camera, motionBlurParameters );
+	const motionPass = new MotionBlurPass(scene, camera, motionBlurParameters);
 
 	const depthShader = {
 		vertexShader: basicVertexShader,
@@ -334,7 +334,7 @@ function main(){
 	// animate();
 
 	function animate(){
-		renderer.setRenderTarget(depthTarget);
+		renderer.setRenderTarget(basicTarget);
 		renderer.render(scene, camera);
 		whichSceneToRender();
 		stats.update();
@@ -343,10 +343,10 @@ function main(){
 
 	function whichSceneToRender(){
 
-		depthPass.uniforms.tDepth.value = depthTarget.depthTexture;
+		depthPass.uniforms.tDepth.value = basicTarget.depthTexture;
 
-		CoCPass.uniforms.tDiffuse.value = depthTarget.texture;
-		CoCPass.uniforms.tDepth.value = depthTarget.depthTexture;
+		CoCPass.uniforms.tDiffuse.value = basicTarget.texture;
+		CoCPass.uniforms.tDepth.value = basicTarget.depthTexture;
 		CoCPass.uniforms.mouseCoords.value = mouse;
 
 		motionPass.debug.display = MotionBlurPass.DEFAULT;
@@ -379,7 +379,7 @@ function main(){
 				break;
 			case "DoF":
 				hideGUIFolder(folderDoFParameters, true);
-				DoFPass.uniforms.tOriginal.value = depthTarget.texture;
+				DoFPass.uniforms.tOriginal.value = basicTarget.texture;
 				DoFComposer.render();
 				break;
 			case "Geometry":
