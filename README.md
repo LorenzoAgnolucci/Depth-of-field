@@ -12,13 +12,16 @@
 * [Acknowledgments](#acknowledgments)
 
 ## Live Demo
-Live Demo available at https://TBD
+Live Demo available at https://lorenzoagnolucci.github.io/public/
 
 The loading of the scene may require some time.
 
 ## About The Project
+![Demo Screen](images/demo_screen.png)
 
-TODO
+In this work we implement Depth of Field and Motion Blur as postprocessing effects using Three.js.
+
+More details about the project in the [presentation](presentation.pdf)
 
 ### Built With
 
