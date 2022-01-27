@@ -17,7 +17,7 @@
     "dat.gui": "^0.7.7",
     "jquery": "latest",
     "popper.js": "latest",
-    "three": "^0.125.0"
+    "three": "^0.137.0"
   },
   "devDependencies": {
     "@types/dat.gui": "^0.7.5",
